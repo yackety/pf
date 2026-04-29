@@ -11,7 +11,7 @@ export function HeaderBar ({ wsServer }: Props) {
   const { t, locale, setLocale, available } = useI18n()
   const { androidDevices } = useServer()
   const { syncAll, syncMain, syncTargets, activeUdid } = useActive()
-  const logoSrc = 'https://solumate.vn/logo_gold.png'
+  const logoSrc = 'https://Lazie.vn/logo_gold.png'
 
   const deviceCount = androidDevices.length
   const syncSummary = syncAll
@@ -24,8 +24,8 @@ export function HeaderBar ({ wsServer }: Props) {
     <div id='header'>
       <div className='headerLeft'>
         <div className='headerBrand'>
-          <img src={logoSrc} alt='Solumate' className='headerLogo' />
-          <h1 className='headerGradientTitle'>Solumate</h1>
+          <img src={logoSrc} alt='Lazie' className='headerLogo' />
+          <h1 className='headerGradientTitle'>Lazie</h1>
         </div>
       </div>
 

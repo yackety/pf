@@ -600,3 +600,37 @@ export async function installUploadedApk(wsServer: string, udid: string, filePat
     throw new Error(json?.error || `Install failed (status ${res.status})`);
   }
 }
+
+export type BulkInstallResult = {
+  udid: string;
+  success: boolean;
+  output?: string;
+  error?: string;
+};
+
+/**
+ * Upload APK once then install to multiple devices in parallel (server-side).
+ * Returns per-device results.
+ */
+export async function installApkToMany(
+  wsServer: string,
+  udids: string[],
+  file: File,
+  onProgress?: (msg: string) => void,
+): Promise<BulkInstallResult[]> {
+  onProgress?.(`Uploading ${file.name}…`);
+  const filePath = await installApk(wsServer, udids[0], file);
+
+  onProgress?.(`Installing on ${udids.length} device(s)…`);
+  const endpoint = `${httpBase(wsServer)}api/goog/device/install-bulk`;
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ udids, filePath }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok && !json?.results) {
+    throw new Error(json?.error || `Bulk install failed (status ${res.status})`);
+  }
+  return (json.results ?? []) as BulkInstallResult[];
+}

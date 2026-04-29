@@ -9,7 +9,7 @@ Thank you for your support! 🙏
 
 ---
 
-# Solumate Stream Project (English)
+# Lazie Stream Project (English)
 
 This project includes two parts:
 - **server**: backend API

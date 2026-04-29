@@ -9,7 +9,7 @@ Xin cảm ơn bạn đã ủng hộ! 🙏
 
 ---
 
-# Solumate Steam Project
+# Lazie Steam Project
 
 Dự án gồm 2 phần:
 - **server**: backend API

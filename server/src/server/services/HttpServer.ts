@@ -488,6 +488,41 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(500).json({ success: false, error: message });
             }
         });
+
+        // Bulk install: install the same already-uploaded file to multiple devices in parallel.
+        // Body: { udids: string[], filePath: string }
+        // Returns: { success, results: [{ udid, success, output?, error? }] }
+        this.mainApp.post('/api/goog/device/install-bulk', async (req, res) => {
+            const { udids, filePath } = req.body || {};
+            const targetUdids: string[] = (Array.isArray(udids) ? udids : [])
+                .map((u: any) => (typeof u === 'string' ? u.trim() : ''))
+                .filter(Boolean);
+            if (!targetUdids.length) {
+                return res.status(400).json({ success: false, error: 'Invalid or empty "udids"' });
+            }
+            if (typeof filePath !== 'string' || !filePath.trim()) {
+                return res.status(400).json({ success: false, error: 'Invalid "filePath"' });
+            }
+            const resolved = path.resolve(filePath);
+            if (!resolved.startsWith(UPLOAD_DIR)) {
+                return res.status(400).json({ success: false, error: 'filePath not allowed' });
+            }
+            if (!fs.existsSync(resolved)) {
+                return res.status(404).json({ success: false, error: 'file not found' });
+            }
+            const results = await Promise.all(
+                targetUdids.map(async (udid) => {
+                    try {
+                        const output = await runAdbInstall(udid, resolved);
+                        return { udid, success: true, output };
+                    } catch (error: any) {
+                        return { udid, success: false, error: error?.message || 'Install failed' };
+                    }
+                }),
+            );
+            const allSuccess = results.every((r) => r.success);
+            return res.status(allSuccess ? 200 : 207).json({ success: allSuccess, results });
+        });
         /// #endif
         this.mainApp.post('/api/recordings/start', async (req, res) => {
             const { session, recordId } = req.body || {};

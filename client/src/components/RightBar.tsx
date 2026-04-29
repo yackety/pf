@@ -3,7 +3,7 @@ import { useActive } from '@/context/ActiveContext';
 import { AndroidKeycode } from '@/lib/keyEvent';
 import { useDirectKeyboard } from '@/hooks/useDirectKeyboard';
 import { useServer } from '@/context/ServerContext';
-import { installApk, installUploadedApk } from '@/lib/serverApi';
+import { installApk, installUploadedApk, installApkToMany } from '@/lib/serverApi';
 import { useI18n } from '@/context/I18nContext';
 import {
   ArrowLeft,
@@ -46,6 +46,40 @@ export function RightBar({ hidden, showExpand, onExpand, hideSyncButtons }: Righ
   const kbBarRef = useRef<HTMLDivElement | null>(null);
   useDirectKeyboard(true, kbBarRef.current);
   const apkInputRef = useRef<HTMLInputElement | null>(null);
+  const apkAllInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleApkAllSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!registeredUdids.length) {
+      setInstallStatus(t('Không có thiết bị nào đang kết nối'));
+      return;
+    }
+    try {
+      setInstallStatus(t('Đang upload {name}...', { name: file.name }));
+      const results = await installApkToMany(wsServer, registeredUdids, file, (msg) =>
+        setInstallStatus(msg),
+      );
+      const ok = results.filter((r) => r.success).length;
+      const fail = results.filter((r) => !r.success).length;
+      const details = results
+        .map((r) => `${r.udid.slice(-6)}: ${r.success ? '✓' : `✗ ${r.error ?? ''}`}`)
+        .join('  ');
+      setInstallStatus(`${ok}/${results.length} thành công${fail ? ` (${fail} lỗi)` : ''} — ${details}`);
+    } catch (err: any) {
+      setInstallStatus(err?.message || t('Cài APK thất bại'));
+    }
+  };
+
+  const triggerApkAllPicker = () => {
+    if (!registeredUdids.length) {
+      setInstallStatus(t('Không có thiết bị nào đang kết nối'));
+      return;
+    }
+    apkAllInputRef.current?.click();
+  };
+
   const handleApkSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -188,6 +222,19 @@ export function RightBar({ hidden, showExpand, onExpand, hideSyncButtons }: Righ
             <Package size={16} strokeWidth={1.8} />
           </span>
         </button>
+        <button
+          className="rb-btn"
+          title={t('Cài APK tất cả thiết bị ({count})', { count: registeredUdids.length })}
+          onClick={triggerApkAllPicker}
+          disabled={!registeredUdids.length}
+        >
+          <span className="rb-icon" style={{ position: 'relative' }}>
+            <Package size={16} strokeWidth={1.8} />
+            <span style={{ position: 'absolute', top: -4, right: -5, fontSize: 9, fontWeight: 700, background: '#4a90e2', color: '#fff', borderRadius: 4, padding: '0 2px', lineHeight: '12px' }}>
+              {registeredUdids.length}
+            </span>
+          </span>
+        </button>
         <input
           ref={apkInputRef}
           type="file"
@@ -195,7 +242,14 @@ export function RightBar({ hidden, showExpand, onExpand, hideSyncButtons }: Righ
           style={{ display: 'none' }}
           onChange={handleApkSelect}
         />
-        {installStatus ? <div style={{ fontSize: 11, color: '#9bc1ff', marginTop: 6 }}>{installStatus}</div> : null}
+        <input
+          ref={apkAllInputRef}
+          type="file"
+          accept=".apk,.xapk,.zip,application/vnd.android.package-archive,application/zip"
+          style={{ display: 'none' }}
+          onChange={handleApkAllSelect}
+        />
+        {installStatus ? <div style={{ fontSize: 11, color: '#9bc1ff', marginTop: 6, wordBreak: 'break-all' }}>{installStatus}</div> : null}
 
         <div className="rb-spacer" />
 

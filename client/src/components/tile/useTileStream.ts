@@ -157,10 +157,14 @@ export function useTileStream(args: Args) {
             return h >>> 0;
         }
 
+        // Prefer WebCodecs (hardware-accelerated) when available; fall back to tinyh264 software decoder.
+        const USE_WEBCODECS = typeof VideoDecoder !== 'undefined';
+
         let firstFrame = false;
         let firstConnect = true;
-        let worker: Worker | null = null; // tinyh264 decoder
-        let renderWorker: Worker | null = null; // YUV->ImageBitmap renderer
+        let worker: Worker | null = null; // tinyh264 decoder (fallback)
+        let renderWorker: Worker | null = null; // YUV->ImageBitmap renderer (fallback)
+        let wcWorker: Worker | null = null; // WebCodecs decoder worker
         let decoderReady = false;
         let renderStateId = 1;
         let splitter: AnnexBSplitter | null = null;
@@ -197,6 +201,85 @@ export function useTileStream(args: Args) {
             firstFrame = false;
             setLoading(true);
             decoderReady = false;
+            renderBusy = false;
+            pendingFrame = null;
+            frameId = 1;
+
+            // Capture state ID before any async work so stale frames can be discarded.
+            const myStateId = renderStateId;
+
+            // ── WebCodecs path ───────────────────────────────────────────────────────
+            if (USE_WEBCODECS) {
+                if (wcWorker) {
+                    try { wcWorker.postMessage({ type: 'release' }); } catch { /* ignore */ }
+                    try { wcWorker.terminate(); } catch { /* ignore */ }
+                    wcWorker = null;
+                }
+
+                wcWorker = new Worker(
+                    new URL('../../workers/webcodecs_worker.worker.ts', import.meta.url),
+                    { type: 'module' },
+                );
+
+                wcWorker.onerror = (e) => {
+                    console.error('[webcodecs worker error]', udid, e);
+                    setStatus(tRef.current('❌ lỗi WebCodecs decoder'));
+                    setLoading(true);
+                    firstConnect = true;
+                    window.setTimeout(() => { if (!destroyedRef.current) connect(); }, 0);
+                };
+
+                wcWorker.onmessage = (event: MessageEvent) => {
+                    const msg: any = event.data;
+                    if (!msg || typeof msg.type !== 'string') return;
+
+                    if (msg.type === 'decoderReady') {
+                        decoderReady = true;
+                        return;
+                    }
+
+                    if (msg.type === 'bitmap') {
+                        if (typeof msg.renderStateId === 'number' && msg.renderStateId !== myStateId) {
+                            try { msg.bitmap?.close?.(); } catch { /* ignore */ }
+                            return;
+                        }
+                        const width: number = msg.width;
+                        const height: number = msg.height;
+                        const bitmap: ImageBitmap = msg.bitmap;
+
+                        if (width && height) {
+                            ensureCanvasSize(width, height);
+                            fitCanvasToBody();
+                            onVideoDims?.(width, height);
+                        }
+
+                        try {
+                            if (ctx2d) ctx2d.drawImage(bitmap, 0, 0);
+                            try { bitmap.close?.(); } catch { /* ignore */ }
+                        } catch (e) {
+                            console.error('[present bitmap webcodecs]', udid, e);
+                        }
+
+                        if (!firstFrame) {
+                            if (!canvas) return;
+                            firstFrame = true;
+                            if (initialLoadTimer != null) { clearTimeout(initialLoadTimer); initialLoadTimer = null; }
+                            setLoading(false);
+                            setStatus('');
+                        }
+
+                        lastBitmapAt = Date.now();
+                        return;
+                    }
+
+                    if (msg.type === 'error') {
+                        console.warn('[webcodecs worker] reported error', msg.message);
+                        return;
+                    }
+                };
+
+            } else {
+            // ── tinyh264 fallback path ───────────────────────────────────────────────
 
             // Tear down previous worker if any
             if (worker) {
@@ -213,15 +296,8 @@ export function useTileStream(args: Args) {
                 worker = null;
             }
 
-            const myStateId = renderStateId;
-
             // Create tinyh264 decoder worker (WASM inside the package)
             worker = new Worker(new URL('../../workers/device_worker.worker.ts', import.meta.url), { type: 'module' });
-
-            // Create per-tile render worker to move YUV->RGBA + bitmap creation off the main thread.
-            renderBusy = false;
-            pendingFrame = null;
-            frameId = 1;
 
             if (renderWorker) {
                 try {
@@ -398,12 +474,30 @@ export function useTileStream(args: Args) {
                 }, 0);
             };
 
-            splitter = new AnnexBSplitter((naluWithStartCode) => {
-                if (!worker || !decoderReady) return;
+            } // end tinyh264 else-block
 
+            // ── Splitter: routes raw Annex-B NALUs to the active decoder (both paths) ──
+            splitter = new AnnexBSplitter((naluWithStartCode) => {
                 // Copy before transferring (splitter may hand us a view)
                 const payload = new Uint8Array(naluWithStartCode);
                 if (payload.length < 5) return;
+
+                if (USE_WEBCODECS) {
+                    // WebCodecs worker handles SPS/PPS reconfiguration internally.
+                    if (!wcWorker || !decoderReady) return;
+                    try {
+                        wcWorker.postMessage(
+                            { type: 'decode', data: payload.buffer, renderStateId: myStateId },
+                            [payload.buffer],
+                        );
+                    } catch (e) {
+                        console.error('[webcodecs decode]', udid, e);
+                    }
+                    return;
+                }
+
+                // tinyh264 path
+                if (!worker || !decoderReady) return;
 
                 // Detect SPS/PPS changes mid-stream (common on some devices when rotating).
                 // When tinyh264 gets stuck after such change, reconnect with restart=1.
@@ -502,6 +596,20 @@ export function useTileStream(args: Args) {
                     // ignore
                 }
                 renderWorker = null;
+            }
+
+            if (wcWorker) {
+                try {
+                    wcWorker.postMessage({ type: 'release' });
+                } catch {
+                    // ignore
+                }
+                try {
+                    wcWorker.terminate();
+                } catch {
+                    // ignore
+                }
+                wcWorker = null;
             }
 
             decoderReady = false;
