@@ -41,12 +41,13 @@ function getNalType(u8: Uint8Array): number {
 
 /** Build AVCDecoderConfigurationRecord (avcC) from raw SPS and PPS bytes. */
 function buildAvcC(spsRaw: Uint8Array, ppsRaw: Uint8Array): Uint8Array {
-  const out = new Uint8Array(7 + spsRaw.length + 3 + ppsRaw.length);
+  // avcC layout: 6 header bytes + 2 SPS-length bytes + SPS + 1 numPPS + 2 PPS-length bytes + PPS = 11 + N + M
+  const out = new Uint8Array(11 + spsRaw.length + ppsRaw.length);
   let o = 0;
   out[o++] = 1;                            // configurationVersion
-  out[o++] = spsRaw[1];                    // AVCProfileIndication
-  out[o++] = spsRaw[2];                    // profile_compatibility
-  out[o++] = spsRaw[3];                    // AVCLevelIndication
+  out[o++] = spsRaw[1] ?? 0x42;           // AVCProfileIndication
+  out[o++] = spsRaw[2] ?? 0x00;           // profile_compatibility
+  out[o++] = spsRaw[3] ?? 0x1f;           // AVCLevelIndication
   out[o++] = 0xff;                         // 0b11111100 | lengthSizeMinusOne(3)
   out[o++] = 0xe1;                         // 0b11100000 | numSPS(1)
   out[o++] = (spsRaw.length >> 8) & 0xff;
