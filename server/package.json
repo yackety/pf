@@ -8,7 +8,9 @@
         "build:dev": "webpack --config webpack/ws-scrcpy.dev.ts --stats-error-details --watch",
         "build": "webpack --config webpack/ws-scrcpy.prod.ts --stats-error-details",
         "start:dist": "node dist/index.js",
-        "start": "npm run build && npm run start:dist"
+        "start": "npm run build && npm run start:dist",
+        "start:config": "npm run build && cross-env WS_SCRCPY_CONFIG=config.yaml node dist/index.js",
+        "dev:config": "cross-env WS_SCRCPY_CONFIG=config.yaml node dist/index.js"
     },
     "author": "Sergey Volkov <drauggres@gmail.com>",
     "license": "MIT",
@@ -40,6 +42,7 @@
         "@types/ws": "^7.4.7",
         "@typescript-eslint/eslint-plugin": "^5.18.0",
         "@typescript-eslint/parser": "^5.18.0",
+        "cross-env": "^10.1.0",
         "eslint": "^8.12.0",
         "eslint-config-prettier": "^8.5.0",
         "eslint-plugin-prettier": "^4.0.0",
