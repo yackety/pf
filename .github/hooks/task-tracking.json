@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "windows": "powershell -NoProfile -ExecutionPolicy Bypass -File .github/hooks/scripts/update-tasks.ps1",
+        "command": "bash .github/hooks/scripts/update-tasks.sh",
+        "timeout": 5
+      }
+    ]
+  }
+}
