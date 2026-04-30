@@ -9,8 +9,8 @@
         "build": "webpack --config webpack/ws-scrcpy.prod.ts --stats-error-details",
         "start:dist": "node dist/index.js",
         "start": "npm run build && npm run start:dist",
-        "start:config": "npm run build && cross-env WS_SCRCPY_CONFIG=config.yaml node dist/index.js",
-        "dev:config": "cross-env WS_SCRCPY_CONFIG=config.yaml node dist/index.js"
+        "start:config": "npm run build && WS_SCRCPY_CONFIG=config.yaml node dist/index.js",
+        "dev:config": "WS_SCRCPY_CONFIG=config.yaml node dist/index.js"
     },
     "author": "Sergey Volkov <drauggres@gmail.com>",
     "license": "MIT",
