@@ -117,11 +117,36 @@ loadPlatformModulesPromises.push(loadApplModules());
 
 Promise.all(loadPlatformModulesPromises)
     .then(() => {
-        return servicesToStart.map((serviceClass: ServiceClass) => {
+        return Promise.all(servicesToStart.map((serviceClass: ServiceClass) => {
             const service = serviceClass.getInstance();
             runningServices.push(service);
             return service.start();
-        });
+        }));
+    })
+    .then(async () => {
+        // Replay devices that were already known before the DB connection was ready.
+        /// #if INCLUDE_GOOG
+        {
+            const { ControlCenter } = await import('./goog-device/services/ControlCenter');
+            const { DeviceDbSync } = await import('./db/DeviceDbSync');
+            if (ControlCenter.hasInstance()) {
+                for (const d of ControlCenter.getInstance().getDevices()) {
+                    DeviceDbSync.handleGoog(d);
+                }
+            }
+        }
+        /// #endif
+        /// #if INCLUDE_APPL
+        {
+            const { ControlCenter } = await import('./appl-device/services/ControlCenter');
+            const { DeviceDbSync } = await import('./db/DeviceDbSync');
+            if (ControlCenter.hasInstance()) {
+                for (const d of ControlCenter.getInstance().getDevices()) {
+                    DeviceDbSync.handleAppl(d);
+                }
+            }
+        }
+        /// #endif
     })
     .then(() => {
         const wsService = WebSocketServer.getInstance();
