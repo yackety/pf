@@ -11,7 +11,7 @@ export const routes: Routes = [
     path: '',
     loadComponent: () =>
       import('./layout/shell/shell.component').then(m => m.ShellComponent),
-    //canActivate: [authGuard],
+    canActivate: [authGuard],
     children: [
       {
         path: 'dashboard',
@@ -41,7 +41,7 @@ export const routes: Routes = [
       },
       {
         path: 'admin/users',
-        //canActivate: [adminGuard],
+        canActivate: [adminGuard],
         loadComponent: () =>
           import('./features/admin/users/users.component').then(m => m.UsersComponent),
       },

@@ -178,7 +178,7 @@ Components subscribe to these signals to update device tiles/rows in place witho
 // environment.ts
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://localhost:5000',
-  signalrHubUrl: 'http://localhost:5000/hubs/devices',
+  apiBaseUrl: 'https://localhost:7253',
+  signalrHubUrl: 'https://localhost:7253/hubs/devices',
 };
 ```

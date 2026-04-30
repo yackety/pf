@@ -2,7 +2,6 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using PhoneFarm.Application.Accounts.Services;
 using PhoneFarm.Application.Agents.Services;
 using PhoneFarm.Application.Auth.Services;
@@ -13,6 +12,7 @@ using PhoneFarm.Application.Users.Services;
 using PhoneFarm.API.Hubs;
 using PhoneFarm.API.Services;
 using PhoneFarm.Infrastructure.Data;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,34 +92,65 @@ builder.Services.AddCors(options =>
 // ── Controllers + Swagger ───────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "PhoneFarm API", Version = "v1" });
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-    });
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
-            []
-        }
-    });
-});
+//builder.Services.AddSwaggerGen(c =>
+//{
+//    c.SwaggerDoc("v1", new OpenApiInfo { Title = "PhoneFarm API", Version = "v1" });
+//    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+//    {
+//        Name = "Authorization",
+//        Type = SecuritySchemeType.Http,
+//        Scheme = "bearer",
+//        BearerFormat = "JWT",
+//        In = ParameterLocation.Header,
+//    });
+//    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+//    {
+//        {
+//            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
+//            []
+//        }
+//    });
+//});
 
 // ── Build ───────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+// ── Auto-migrate + seed on startup ─────────────────────────────────────────
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    var db = scope.ServiceProvider.GetRequiredService<PhoneFarmDbContext>();
+    db.Database.Migrate();
+
+    // Seed default users if they don't exist yet
+    var seedUsers = new[]
+    {
+        new { Username = "admin", Password = "Phuoc@123", Role = "Admin" },
+        new { Username = "user",  Password = "Phuoc@123", Role = "Operator" },
+    };
+
+    foreach (var seed in seedUsers)
+    {
+        if (!db.Users.Any(u => u.Username == seed.Username))
+        {
+            db.Users.Add(new PhoneFarm.Domain.Entities.User
+            {
+                Username     = seed.Username,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(seed.Password),
+                Role         = seed.Role,
+                IsActive     = true,
+                CreatedAt    = DateTime.UtcNow,
+            });
+        }
+    }
+
+    db.SaveChanges();
 }
+
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI();
+//}
 
 app.UseMiddleware<PhoneFarm.API.Middleware.ExceptionMiddleware>();
 app.UseCors();
