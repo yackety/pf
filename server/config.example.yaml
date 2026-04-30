@@ -6,6 +6,16 @@ runGoogTracker: false
 ## track iOS devices (default: true, if was INCLUDE_APPL enabled in build config)
 runApplTracker: false;
 
+# MSSQL database connection (required for DB sync)
+database:
+  connectionString: "Server=HOST;Database=PhoneFarm;User Id=sa;Password=YourPassword;Encrypt=false;TrustServerCertificate=true"
+
+# Agent identity (required for DB sync)
+agent:
+  id: "agent-office-01"               # unique identifier for this physical host
+  host: "http://192.168.1.10:11000"   # URL the .NET Core API calls to proxy commands
+  heartbeatIntervalSeconds: 30        # how often to update Agents.LastHeartbeatAt
+
 # HTTP[s] servers configuration
 server:
   - secure: false

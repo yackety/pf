@@ -37,6 +37,16 @@ export interface ServerItem {
         | boolean;
 }
 
+export interface DatabaseConfig {
+    connectionString: string;
+}
+
+export interface AgentConfig {
+    id: string;
+    host: string;
+    heartbeatIntervalSeconds?: number;
+}
+
 // The configuration file must contain a single object with this structure
 export interface Configuration {
     server?: ServerItem[];
@@ -45,4 +55,6 @@ export interface Configuration {
     runGoogTracker?: boolean;
     announceGoogTracker?: boolean;
     remoteHostList?: HostsItem[];
+    database?: DatabaseConfig;
+    agent?: AgentConfig;
 }

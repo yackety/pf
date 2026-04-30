@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="PhoneFarm.API/PhoneFarm.API.csproj" />
+  <Project Path="PhoneFarm.Application/PhoneFarm.Application.csproj" />
+  <Project Path="PhoneFarm.Domain/PhoneFarm.Domain.csproj" />
+  <Project Path="PhoneFarm.Infrastructure/PhoneFarm.Infrastructure.csproj" />
+</Solution>

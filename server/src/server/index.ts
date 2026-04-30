@@ -21,8 +21,9 @@ import { HostTracker } from './mw/HostTracker';
 import { WebsocketMultiplexer } from './mw/WebsocketMultiplexer';
 import { RecordingStatusSocket } from './mw/RecordingStatusSocket';
 import { DeviceListSocket } from './mw/DeviceListSocket';
+import { AgentSyncService } from './services/AgentSyncService';
 
-const servicesToStart: ServiceClass[] = [HttpServer, WebSocketServer];
+const servicesToStart: ServiceClass[] = [HttpServer, WebSocketServer, AgentSyncService];
 
 // MWs that accept WebSocket
 const mwList: MwFactory[] = [WebsocketProxy, WebsocketMultiplexer, RecordingStatusSocket, DeviceListSocket];
@@ -40,6 +41,7 @@ async function loadGoogModules() {
     const { ControlCenter } = await import('./goog-device/services/ControlCenter');
     const { DeviceTracker } = await import('./goog-device/mw/DeviceTracker');
     const { WebsocketProxyOverAdb } = await import('./goog-device/mw/WebsocketProxyOverAdb');
+    const { DeviceDbSync } = await import('./db/DeviceDbSync');
 
     if (config.runLocalGoogTracker) {
         mw2List.push(DeviceTracker);
@@ -50,6 +52,11 @@ async function loadGoogModules() {
     }
 
     servicesToStart.push(ControlCenter);
+
+    // Hook device events into DB sync
+    ControlCenter.getInstance().on('device', (descriptor) => {
+        DeviceDbSync.handleGoog(descriptor);
+    });
 
     /// #if INCLUDE_ADB_SHELL
     // const { RemoteShell } = await import('./goog-device/mw/RemoteShell');
@@ -76,6 +83,7 @@ async function loadApplModules() {
     const { ControlCenter } = await import('./appl-device/services/ControlCenter');
     const { DeviceTracker } = await import('./appl-device/mw/DeviceTracker');
     const { WebDriverAgentProxy } = await import('./appl-device/mw/WebDriverAgentProxy');
+    const { DeviceDbSync } = await import('./db/DeviceDbSync');
 
     // Hack to reduce log-level of appium libs
     const { default: npmlog } = await import('npmlog');
@@ -92,6 +100,11 @@ async function loadApplModules() {
     }
 
     servicesToStart.push(ControlCenter);
+
+    // Hook device events into DB sync
+    ControlCenter.getInstance().on('device', (descriptor) => {
+        DeviceDbSync.handleAppl(descriptor);
+    });
 
     /// #if USE_QVH_SERVER
     const { QVHStreamProxy } = await import('./appl-device/mw/QVHStreamProxy');

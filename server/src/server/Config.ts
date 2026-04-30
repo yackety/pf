@@ -1,7 +1,7 @@
 import * as process from 'process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Configuration, HostItem, ServerItem } from '../types/Configuration';
+import { AgentConfig, Configuration, DatabaseConfig, HostItem, ServerItem } from '../types/Configuration';
 import { EnvName } from './EnvName';
 import YAML from 'yaml';
 
@@ -39,6 +39,8 @@ export class Config {
             announceApplTracker,
             server,
             remoteHostList: [],
+            database: { connectionString: '' },
+            agent: { id: 'agent-default', host: 'http://localhost:11000', heartbeatIntervalSeconds: 30 },
         };
         const merged = Object.assign({}, defaultConfig, userConfig);
         merged.server = merged.server.map((item) => this.parseServerItem(item));
@@ -152,5 +154,14 @@ export class Config {
 
     public get servers(): ServerItem[] {
         return this.fullConfig.server;
+    }
+
+    public get database(): DatabaseConfig {
+        return this.fullConfig.database;
+    }
+
+    public get agent(): Required<AgentConfig> {
+        const { id, host, heartbeatIntervalSeconds } = this.fullConfig.agent;
+        return { id, host, heartbeatIntervalSeconds: heartbeatIntervalSeconds ?? 30 };
     }
 }
