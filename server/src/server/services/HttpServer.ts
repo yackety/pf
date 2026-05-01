@@ -523,6 +523,64 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
             const allSuccess = results.every((r) => r.success);
             return res.status(allSuccess ? 200 : 207).json({ success: allSuccess, results });
         });
+
+        // Enable WiFi (TCP/IP) mode and optionally connect for one or more devices.
+        // Body: { udid?: string, udids?: string[], port?: number }
+        // Steps per device:
+        //   1. adb -s <udid> tcpip <port>   — enables TCP/IP listener on the device
+        //   2. adb connect <wifiIp>:<port>   — connects over WiFi (skipped if no WiFi IP is known)
+        // Returns: { success, results: [{ udid, success, output?, error? }] }
+        this.mainApp.post('/api/goog/device/connect-wifi', async (req, res) => {
+            const { udid, udids, port = 5555 } = req.body || {};
+            const targetUdids: string[] = (Array.isArray(udids) ? udids : udid ? [udid] : [])
+                .map((u: any) => (typeof u === 'string' ? u.trim() : ''))
+                .filter(Boolean);
+            if (!targetUdids.length) {
+                return res.status(400).json({ success: false, error: 'Provide "udid" or "udids"' });
+            }
+            const tcpPort = typeof port === 'number' && port > 0 && port < 65536 ? port : 5555;
+
+            const runAdb = (args: string[]): Promise<string> =>
+                new Promise((resolve, reject) => {
+                    const proc = spawn('adb', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+                    let out = '';
+                    proc.stdout.on('data', (d: Buffer) => { out += d.toString(); });
+                    proc.stderr.on('data', (d: Buffer) => { out += d.toString(); });
+                    proc.on('error', reject);
+                    proc.on('close', () => resolve(out.trim()));
+                });
+
+            const controlCenter = GoogControlCenter.getInstance();
+
+            const connectDevice = async (deviceUdid: string): Promise<{ udid: string; success: boolean; output?: string; error?: string }> => {
+                try {
+                    // Step 1: switch device to TCP/IP mode
+                    const tcpipOut = await runAdb(['-s', deviceUdid, 'tcpip', String(tcpPort)]);
+
+                    // Step 2: find WiFi IP from the descriptor (prefer wlan0)
+                    const descriptor = controlCenter.getDevices().find(d => d.udid === deviceUdid);
+                    const wifiIface = descriptor?.['wifi.interface'] || 'wlan0';
+                    const ifaces: Array<{ name: string; ipv4: string }> = descriptor?.interfaces ?? [];
+                    const wifiIp = ifaces.find(i => i.name === wifiIface)?.ipv4
+                        ?? ifaces.find(i => i.name?.startsWith('wlan'))?.ipv4;
+
+                    if (!wifiIp) {
+                        return { udid: deviceUdid, success: true, output: `${tcpipOut} (no WiFi IP found; run "adb connect <ip>:${tcpPort}" manually)` };
+                    }
+
+                    // Step 3: connect over WiFi
+                    const connectOut = await runAdb(['connect', `${wifiIp}:${tcpPort}`]);
+                    const failed = connectOut.toLowerCase().includes('failed') || connectOut.toLowerCase().includes('error');
+                    return { udid: deviceUdid, success: !failed, output: `${tcpipOut} | ${connectOut}` };
+                } catch (error: any) {
+                    return { udid: deviceUdid, success: false, error: error?.message || 'Unknown error' };
+                }
+            };
+
+            const results = await Promise.all(targetUdids.map(connectDevice));
+            const allSuccess = results.every(r => r.success);
+            return res.status(allSuccess ? 200 : 207).json({ success: allSuccess, results });
+        });
         /// #endif
         this.mainApp.post('/api/recordings/start', async (req, res) => {
             const { session, recordId } = req.body || {};

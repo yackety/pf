@@ -505,9 +505,11 @@ export class DeviceDetailComponent {
 
   readonly accounts = signal<DeviceAccount[]>([]);
   readonly accountsLoading = signal(false);
+  readonly #accountsLoaded = signal(false);
 
   readonly logEntries = signal<DeviceSessionLog[]>([]);
   readonly logLoading = signal(false);
+  readonly #logLoaded = signal(false);
   readonly logTotal = signal(0);
   readonly logPage = signal(1);
   readonly logPageSize = 50;
@@ -572,8 +574,8 @@ export class DeviceDetailComponent {
     // React to tab changes to lazy-load accounts/log
     effect(() => {
       const tab = this.activeTab();
-      if (tab === 'accounts' && this.accounts().length === 0) this.#loadAccounts();
-      if (tab === 'log' && this.logEntries().length === 0) this.#loadLog();
+      if (tab === 'accounts' && !this.#accountsLoaded()) this.#loadAccounts();
+      if (tab === 'log' && !this.#logLoaded()) this.#loadLog();
     });
 
     // SignalR live state
@@ -742,6 +744,7 @@ export class DeviceDetailComponent {
   }
 
   #loadAccounts(): void {
+    this.#accountsLoaded.set(true);
     this.accountsLoading.set(true);
     this.#svc.getAccounts(this.udid).subscribe({
       next: list => { this.accounts.set(list); this.accountsLoading.set(false); },
@@ -750,6 +753,7 @@ export class DeviceDetailComponent {
   }
 
   #loadLog(): void {
+    this.#logLoaded.set(true);
     this.logLoading.set(true);
     this.#svc.getSessionLog(this.udid, this.logPage(), this.logPageSize).subscribe({
       next: result => {
