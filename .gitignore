@@ -67,3 +67,5 @@ appsettings.Development.json
 # ─── Logs ────────────────────────────────────────────────────
 *.log
 logs/
+server/package-lock.json
+server/yarn.lock

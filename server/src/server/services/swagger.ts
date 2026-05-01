@@ -249,6 +249,137 @@ export const swaggerSpec: OpenAPIV3.Document = {
                 },
             },
         },
+        '/api/goog/device/wifi-network': {
+            post: {
+                summary: 'Connect one or more devices to a WiFi network (internet access)',
+                description: 'Requires Android 10+. Runs `adb shell cmd wifi connect-network` in parallel across all target devices. Does **not** relate to ADB-over-WiFi — this physically joins the devices to a wireless network so they can reach the internet.',
+                tags: ['Device'],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['ssid'],
+                                properties: {
+                                    udid: { type: 'string', description: 'ADB serial of a single device' },
+                                    udids: { type: 'array', items: { type: 'string' }, description: 'ADB serials of multiple devices (alternative to udid)' },
+                                    ssid: { type: 'string', description: 'WiFi network name (SSID)' },
+                                    password: { type: 'string', description: 'WiFi password (omit for open networks)' },
+                                    security: { type: 'string', enum: ['wpa2', 'wpa3', 'open'], description: 'Security type. Defaults to wpa2 when password provided, open otherwise.' },
+                                },
+                            },
+                            examples: {
+                                single_wpa2: { summary: 'Single device — WPA2', value: { udid: 'emulator-5554', ssid: 'MyHomeWiFi', password: 'secret123' } },
+                                multi_wpa2: { summary: 'Multiple devices — WPA2', value: { udids: ['emulator-5554', 'emulator-5556'], ssid: 'MyHomeWiFi', password: 'secret123' } },
+                                open: { summary: 'Open network', value: { udid: 'emulator-5554', ssid: 'CoffeeShop_Free' } },
+                                wpa3: { summary: 'WPA3 network', value: { udid: 'emulator-5554', ssid: 'OfficeNet', password: 'pa$$w0rd', security: 'wpa3' } },
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': { description: 'All devices connected successfully', content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean' }, results: { type: 'array', items: { type: 'object', properties: { udid: { type: 'string' }, success: { type: 'boolean' }, output: { type: 'string' }, error: { type: 'string' } } } } } } } } },
+                    '207': { description: 'Partial success — some devices failed (check results array)' },
+                    '400': { description: 'Validation error (missing udid/udids, invalid ssid, missing password, unsupported security type)' },
+                },
+            },
+        },
+        '/api/goog/device/shell': {
+            post: {
+                summary: 'Run a single ADB shell command on a device',
+                tags: ['Automation'],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['udid', 'command'],
+                                properties: {
+                                    udid: { type: 'string', description: 'ADB serial of the device' },
+                                    command: { type: 'string', description: 'Shell command to run, e.g. "input tap 500 800"' },
+                                },
+                            },
+                            example: { udid: 'emulator-5554', command: 'input tap 500 800' },
+                        },
+                    },
+                },
+                responses: {
+                    '200': { description: 'Command executed', content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean' }, output: { type: 'string' } } } } } },
+                    '400': { description: 'Validation error' },
+                    '500': { description: 'Command failed' },
+                },
+            },
+        },
+        '/api/goog/device/automate': {
+            post: {
+                summary: 'Run a sequence of automation steps on a device',
+                description: [
+                    'Executes steps sequentially; stops on the first failure.',
+                    '',
+                    '**Step types:**',
+                    '- `open-url` — open a URL in Chrome: `{ type, url }`',
+                    '- `shell` — raw adb shell command: `{ type, command }`',
+                    '- `tap` — tap at coordinates: `{ type, x, y }`',
+                    '- `swipe` — swipe/scroll: `{ type, x, fromY, toY, durationMs? }`',
+                    '- `key` — keyevent: `{ type, keycode }` (e.g. 4 = BACK, 3 = HOME)',
+                    '- `text` — type into focused field: `{ type, text }`',
+                    '- `wait` — pause: `{ type, ms }`',
+                ].join('\n'),
+                tags: ['Automation'],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['udid', 'steps'],
+                                properties: {
+                                    udid: { type: 'string' },
+                                    steps: {
+                                        type: 'array',
+                                        items: {
+                                            type: 'object',
+                                            required: ['type'],
+                                            properties: {
+                                                type: { type: 'string', enum: ['open-url', 'shell', 'tap', 'swipe', 'key', 'text', 'wait'] },
+                                                url: { type: 'string' },
+                                                command: { type: 'string' },
+                                                x: { type: 'number' },
+                                                y: { type: 'number' },
+                                                fromY: { type: 'number' },
+                                                toY: { type: 'number' },
+                                                durationMs: { type: 'number', default: 300 },
+                                                keycode: { oneOf: [{ type: 'number' }, { type: 'string' }] },
+                                                text: { type: 'string' },
+                                                ms: { type: 'number' },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                            example: {
+                                udid: 'emulator-5554',
+                                steps: [
+                                    { type: 'open-url', url: 'https://www.google.com/search?q=phonefarm' },
+                                    { type: 'wait', ms: 2000 },
+                                    { type: 'open-url', url: 'https://example.com' },
+                                    { type: 'wait', ms: 1500 },
+                                    { type: 'swipe', x: 500, fromY: 1500, toY: 500, durationMs: 400 },
+                                    { type: 'key', keycode: 4 },
+                                ],
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': { description: 'All steps completed successfully' },
+                    '207': { description: 'Partial success — first failing step stopped execution', content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean' }, results: { type: 'array', items: { type: 'object', properties: { step: { type: 'number' }, type: { type: 'string' }, success: { type: 'boolean' }, output: { type: 'string' }, error: { type: 'string' } } } } } } } } },
+                    '400': { description: 'Validation error' },
+                },
+            },
+        },
         '/api/devices/connect': {
             post: {
                 summary: 'Switch one or more devices between USB and WiFi connection mode',

@@ -607,6 +607,181 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
             const allSuccess = results.every(r => r.success);
             return res.status(allSuccess ? 200 : 207).json({ success: allSuccess, results });
         });
+
+        // POST /api/goog/device/wifi-network — Connect one or more devices to a WiFi network (so they can access the internet).
+        // Requires Android 10+. Uses "adb shell cmd wifi connect-network". Runs in parallel across all target devices.
+        // Body: { udid?: string, udids?: string[], ssid: string, password?: string, security?: 'wpa2'|'wpa3'|'open' }
+        //   security defaults to 'wpa2' when a password is provided, 'open' when no password is given.
+        // Returns: { success, results: [{ udid, success, output?, error? }] }
+        this.mainApp.post('/api/goog/device/wifi-network', async (req, res) => {
+            const { udid, udids, ssid, password, security } = req.body || {};
+            const targetUdids: string[] = (Array.isArray(udids) ? udids : udid ? [udid] : [])
+                .map((u: any) => (typeof u === 'string' ? u.trim() : ''))
+                .filter(Boolean);
+            if (!targetUdids.length) {
+                return res.status(400).json({ success: false, error: 'Provide "udid" or "udids"' });
+            }
+            if (typeof ssid !== 'string' || !ssid.trim()) {
+                return res.status(400).json({ success: false, error: 'Invalid "ssid"' });
+            }
+
+            const hasPassword = typeof password === 'string' && password.length > 0;
+            const securityType: string = typeof security === 'string' && security.trim()
+                ? security.trim()
+                : hasPassword ? 'wpa2' : 'open';
+
+            const allowedSecurity = ['wpa2', 'wpa3', 'open'];
+            if (!allowedSecurity.includes(securityType)) {
+                return res.status(400).json({ success: false, error: `Invalid "security": must be one of ${allowedSecurity.join(', ')}` });
+            }
+            if (securityType !== 'open' && !hasPassword) {
+                return res.status(400).json({ success: false, error: '"password" is required for non-open networks' });
+            }
+
+            const args = ['shell', 'cmd', 'wifi', 'connect-network', ssid.trim(), securityType];
+            if (hasPassword) {
+                args.push(password);
+            }
+
+            const results = await Promise.all(
+                targetUdids.map(async (deviceUdid) => {
+                    try {
+                        const output = await runAdbCommand(['-s', deviceUdid, ...args], 'wifi connect-network');
+                        // The command outputs "Network connection initiated" on success
+                        const failed = output.toLowerCase().includes('error') || output.toLowerCase().includes('failed') || output.toLowerCase().includes('usage:');
+                        if (failed) {
+                            return { udid: deviceUdid, success: false, error: output || 'Failed to connect to WiFi network' };
+                        }
+                        return { udid: deviceUdid, success: true, output };
+                    } catch (error: any) {
+                        return { udid: deviceUdid, success: false, error: error?.message || 'Failed to connect to WiFi network' };
+                    }
+                }),
+            );
+            const allSuccess = results.every((r) => r.success);
+            return res.status(allSuccess ? 200 : 207).json({ success: allSuccess, results });
+        });
+
+        // POST /api/goog/device/shell — Run a single ADB shell command on a device.
+        // Body: { udid: string, command: string }
+        // Returns: { success, output }
+        this.mainApp.post('/api/goog/device/shell', async (req, res) => {
+            const { udid, command } = req.body || {};
+            if (typeof udid !== 'string' || !udid.trim()) {
+                return res.status(400).json({ success: false, error: 'Invalid "udid"' });
+            }
+            if (typeof command !== 'string' || !command.trim()) {
+                return res.status(400).json({ success: false, error: 'Invalid "command"' });
+            }
+            try {
+                const output = await runAdbCommand(['-s', udid.trim(), 'shell', command.trim()], 'adb shell');
+                return res.json({ success: true, output });
+            } catch (error: any) {
+                const message = error?.message || 'Shell command failed';
+                return res.status(500).json({ success: false, error: message });
+            }
+        });
+
+        // POST /api/goog/device/automate — Run a sequence of automation steps on a device.
+        // Supported step types:
+        //   { type: "open-url",  url: string }                          — open URL in Chrome
+        //   { type: "shell",     command: string }                      — raw adb shell command
+        //   { type: "tap",       x: number, y: number }                 — tap at coordinates
+        //   { type: "swipe",     x: number, fromY: number, toY: number, durationMs?: number } — swipe (scroll)
+        //   { type: "key",       keycode: number|string }               — press a keycode (e.g. 4 = BACK)
+        //   { type: "text",      text: string }                         — type text into focused field
+        //   { type: "wait",      ms: number }                           — pause execution
+        // Body: { udid: string, steps: Step[] }
+        // Returns: { success, results: [{ step, success, output?, error? }] }
+        this.mainApp.post('/api/goog/device/automate', async (req, res) => {
+            const { udid, steps } = req.body || {};
+            if (typeof udid !== 'string' || !udid.trim()) {
+                return res.status(400).json({ success: false, error: 'Invalid "udid"' });
+            }
+            if (!Array.isArray(steps) || !steps.length) {
+                return res.status(400).json({ success: false, error: 'Invalid "steps": must be a non-empty array' });
+            }
+
+            const deviceUdid = udid.trim();
+            const adb = (args: string[]) => runAdbCommand(['-s', deviceUdid, ...args], 'adb');
+
+            const runStep = async (step: any, index: number): Promise<{ step: number; type: string; success: boolean; output?: string; error?: string }> => {
+                const type = typeof step?.type === 'string' ? step.type : '';
+                try {
+                    switch (type) {
+                        case 'open-url': {
+                            const url = typeof step.url === 'string' ? step.url.trim() : '';
+                            if (!url) throw new Error('"url" is required for open-url step');
+                            const output = await adb([
+                                'shell', 'am', 'start',
+                                '-a', 'android.intent.action.VIEW',
+                                '-d', url,
+                                'com.android.chrome',
+                            ]);
+                            return { step: index, type, success: true, output };
+                        }
+                        case 'shell': {
+                            const command = typeof step.command === 'string' ? step.command.trim() : '';
+                            if (!command) throw new Error('"command" is required for shell step');
+                            const output = await adb(['shell', command]);
+                            return { step: index, type, success: true, output };
+                        }
+                        case 'tap': {
+                            const x = step.x;
+                            const y = step.y;
+                            if (typeof x !== 'number' || typeof y !== 'number') throw new Error('"x" and "y" are required for tap step');
+                            const output = await adb(['shell', 'input', 'tap', String(x), String(y)]);
+                            return { step: index, type, success: true, output };
+                        }
+                        case 'swipe': {
+                            const x = typeof step.x === 'number' ? step.x : 500;
+                            const fromY = step.fromY;
+                            const toY = step.toY;
+                            const durationMs = typeof step.durationMs === 'number' && step.durationMs > 0 ? step.durationMs : 300;
+                            if (typeof fromY !== 'number' || typeof toY !== 'number') throw new Error('"fromY" and "toY" are required for swipe step');
+                            const output = await adb(['shell', 'input', 'swipe', String(x), String(fromY), String(x), String(toY), String(durationMs)]);
+                            return { step: index, type, success: true, output };
+                        }
+                        case 'key': {
+                            const keycode = step.keycode;
+                            if (typeof keycode !== 'number' && typeof keycode !== 'string') throw new Error('"keycode" is required for key step');
+                            const output = await adb(['shell', 'input', 'keyevent', String(keycode)]);
+                            return { step: index, type, success: true, output };
+                        }
+                        case 'text': {
+                            const text = typeof step.text === 'string' ? step.text : '';
+                            if (!text) throw new Error('"text" is required for text step');
+                            // Escape special characters for adb shell input text
+                            const escaped = text.replace(/([\\$ "'`])/g, '\\$1').replace(/ /g, '%s');
+                            const output = await adb(['shell', 'input', 'text', escaped]);
+                            return { step: index, type, success: true, output };
+                        }
+                        case 'wait': {
+                            const ms = typeof step.ms === 'number' && step.ms > 0 ? step.ms : 1000;
+                            await delay(ms);
+                            return { step: index, type, success: true, output: `Waited ${ms}ms` };
+                        }
+                        default:
+                            throw new Error(`Unknown step type: "${type}"`);
+                    }
+                } catch (error: any) {
+                    return { step: index, type, success: false, error: error?.message || 'Step failed' };
+                }
+            };
+
+            // Steps run sequentially to preserve ordering
+            const stepResults: Awaited<ReturnType<typeof runStep>>[] = [];
+            for (let i = 0; i < steps.length; i++) {
+                const result = await runStep(steps[i], i);
+                stepResults.push(result);
+                // Stop on failure so subsequent steps don't run in a broken state
+                if (!result.success) {
+                    break;
+                }
+            }
+            const allSuccess = stepResults.every(r => r.success) && stepResults.length === steps.length;
+            return res.status(allSuccess ? 200 : 207).json({ success: allSuccess, results: stepResults });
+        });
         /// #endif
         // POST /api/recordings/start — Begin recording user actions for an active WebSocket proxy session.
         // Body: { session: string, recordId?: string }
