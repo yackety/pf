@@ -1,12 +1,12 @@
-import { AdbExtended } from './adb';
 import AdbKitClient from '@dead50f7/adbkit/lib/adb/client';
 import PushTransfer from '@dead50f7/adbkit/lib/adb/sync/pushtransfer';
 import { spawn } from 'child_process';
-import { NetInterface } from '../../types/NetInterface';
 import { TypedEmitter } from '../../common/TypedEmitter';
 import GoogDeviceDescriptor from '../../types/GoogDeviceDescriptor';
-import { ScrcpyServer } from './ScrcpyServer';
+import { NetInterface } from '../../types/NetInterface';
+import { AdbExtended } from './adb';
 import { Properties } from './Properties';
+import { ScrcpyServer } from './ScrcpyServer';
 type Timeout = ReturnType<typeof setTimeout>;
 
 enum PID_DETECTION {
@@ -24,6 +24,8 @@ export interface DeviceEvents {
 export class Device extends TypedEmitter<DeviceEvents> {
     private static readonly INITIAL_UPDATE_TIMEOUT = 1500;
     private static readonly MAX_UPDATES_COUNT = 7;
+    /** How often (ms) to re-check network interfaces while the device is connected. */
+    private static readonly INTERFACE_POLL_INTERVAL = 10_000;
     private connected = true;
     private pidDetectionVariant: PID_DETECTION = PID_DETECTION.UNKNOWN;
     private client: AdbKitClient;
@@ -34,6 +36,7 @@ export class Device extends TypedEmitter<DeviceEvents> {
     private updateCount = 0;
     private throttleTimeoutId?: Timeout;
     private lastEmit = 0;
+    private interfacePollIntervalId?: ReturnType<typeof setInterval>;
     public readonly TAG: string;
     public readonly descriptor: GoogDeviceDescriptor;
 
@@ -61,12 +64,32 @@ export class Device extends TypedEmitter<DeviceEvents> {
         if (state === 'device') {
             this.connected = true;
             this.properties = undefined;
+            this.startInterfacePoll();
         } else {
             this.connected = false;
+            this.stopInterfacePoll();
         }
         this.descriptor.state = state;
         this.emitUpdate();
         this.fetchDeviceInfo();
+    }
+
+    private startInterfacePoll(): void {
+        this.stopInterfacePoll();
+        this.interfacePollIntervalId = setInterval(async () => {
+            if (!this.connected) {
+                this.stopInterfacePoll();
+                return;
+            }
+            await this.updateInterfaces();
+        }, Device.INTERFACE_POLL_INTERVAL);
+    }
+
+    private stopInterfacePoll(): void {
+        if (this.interfacePollIntervalId !== undefined) {
+            clearInterval(this.interfacePollIntervalId);
+            this.interfacePollIntervalId = undefined;
+        }
     }
 
     public isConnected(): boolean {
