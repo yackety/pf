@@ -38,7 +38,7 @@ public class AuthService : IAuthService
 
         await _db.SaveChangesAsync(ct);
 
-        return new LoginResponse(accessToken, refreshToken, user.Role);
+        return new LoginResponse(accessToken, refreshToken, new UserInfoDto(user.Id, user.Username, user.Role));
     }
 
     public async Task<RefreshResponse> RefreshAsync(RefreshRequest request, CancellationToken ct = default)

@@ -5,7 +5,8 @@ export interface LoginRequest {
 
 export interface AuthTokens {
   accessToken: string;
-  expiresIn: number;
+  refreshToken: string;
+  expiresIn?: number;
 }
 
 export interface UserInfo {
