@@ -1,10 +1,10 @@
 import * as sql from 'mssql';
-import GoogDeviceDescriptor from '../../types/GoogDeviceDescriptor';
-import ApplDeviceDescriptor from '../../types/ApplDeviceDescriptor';
-import { NetInterface } from '../../types/NetInterface';
-import { DbService } from '../services/DbService';
-import { AgentSyncService } from '../services/AgentSyncService';
 import { DeviceState } from '../../common/DeviceState';
+import ApplDeviceDescriptor from '../../types/ApplDeviceDescriptor';
+import GoogDeviceDescriptor from '../../types/GoogDeviceDescriptor';
+import { NetInterface } from '../../types/NetInterface';
+import { AgentSyncService } from '../services/AgentSyncService';
+import { DbService } from '../services/DbService';
 
 /**
  * Hooks into ControlCenter 'device' events and upserts device rows into MSSQL.
@@ -12,6 +12,8 @@ import { DeviceState } from '../../common/DeviceState';
  */
 export class DeviceDbSync {
     private static previousStates = new Map<string, string>();
+    /** Tracks the last known WiFi IP per device (null = no IP / disconnected). */
+    private static previousWifiIps = new Map<string, string | null>();
 
     // -----------------------------------------------------------------------
     // Android
@@ -25,6 +27,18 @@ export class DeviceDbSync {
         const previousState = DeviceDbSync.previousStates.get(udid);
         const stateChanged = previousState !== undefined && previousState !== state;
         DeviceDbSync.previousStates.set(udid, state);
+
+        // Detect WiFi internet connectivity changes
+        const currentWifiIp = DeviceDbSync.resolveWifiIp(descriptor.interfaces, descriptor['wifi.interface']);
+        if (DeviceDbSync.previousWifiIps.has(udid)) {
+            const prevWifiIp = DeviceDbSync.previousWifiIps.get(udid)!;
+            const wasConnected = prevWifiIp !== null;
+            const isConnected = currentWifiIp !== null;
+            if (wasConnected !== isConnected) {
+                DeviceDbSync.logWifiChange(udid, prevWifiIp, currentWifiIp);
+            }
+        }
+        DeviceDbSync.previousWifiIps.set(udid, currentWifiIp);
 
         const ipAddresses = DeviceDbSync.serializeInterfaces(descriptor.interfaces);
         const rawProps = JSON.stringify(descriptor);
@@ -144,6 +158,17 @@ export class DeviceDbSync {
         return JSON.stringify(mapped).substring(0, 1000);
     }
 
+    /**
+     * Returns the IPv4 address of the WiFi interface (e.g. wlan0), or null if not connected.
+     * Falls back to any wlan* interface when the named interface is not found.
+     */
+    private static resolveWifiIp(interfaces: NetInterface[] | undefined, wifiInterface: string | undefined): string | null {
+        if (!interfaces || !interfaces.length) return null;
+        const named = wifiInterface ? interfaces.find((i) => i.name === wifiInterface) : undefined;
+        const iface = named ?? interfaces.find((i) => i.name?.startsWith('wlan'));
+        return iface?.ipv4 ?? null;
+    }
+
     private static logStateChange(udid: string, oldState: string, newState: string): void {
         const agentDbId = AgentSyncService.getInstance().getAgentDbId();
         const event =
@@ -166,6 +191,31 @@ export class DeviceDbSync {
                 .input('Event',     sql.NVarChar(100), event)
                 .input('OldState',  sql.NVarChar(50),  oldState)
                 .input('NewState',  sql.NVarChar(50),  newState)
+                .query(`
+                    INSERT INTO DeviceSessionLog (DeviceId, AgentId, Event, OldState, NewState, OccurredAt)
+                    VALUES (@DeviceId, @AgentDbId, @Event, @OldState, @NewState, GETUTCDATE())
+                `);
+        });
+    }
+
+    private static logWifiChange(udid: string, oldIp: string | null, newIp: string | null): void {
+        const agentDbId = AgentSyncService.getInstance().getAgentDbId();
+        const event = newIp !== null ? 'wifi_connected' : 'wifi_disconnected';
+
+        DbService.getInstance().fire(async (pool) => {
+            const deviceRes = await pool.request()
+                .input('Udid', sql.NVarChar(100), udid)
+                .query<{ Id: number }>(`SELECT Id FROM Devices WHERE Udid = @Udid`);
+
+            const deviceId = deviceRes.recordset[0]?.Id;
+            if (!deviceId) return;
+
+            await pool.request()
+                .input('DeviceId',  sql.Int,          deviceId)
+                .input('AgentDbId', sql.Int,           agentDbId ?? null)
+                .input('Event',     sql.NVarChar(100),  event)
+                .input('OldState',  sql.NVarChar(50),   oldIp ?? '')
+                .input('NewState',  sql.NVarChar(50),   newIp ?? '')
                 .query(`
                     INSERT INTO DeviceSessionLog (DeviceId, AgentId, Event, OldState, NewState, OccurredAt)
                     VALUES (@DeviceId, @AgentDbId, @Event, @OldState, @NewState, GETUTCDATE())
