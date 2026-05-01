@@ -1,29 +1,31 @@
+import { execFile, spawn } from 'child_process';
+import express, { Express } from 'express';
+import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
-import path from 'path';
 import * as os from 'os';
-import * as fs from 'fs';
-import { execFile, spawn } from 'child_process';
-import { Service } from './Service';
-import { Utils } from '../Utils';
-import express, { Express } from 'express';
-import { Config } from '../Config';
-import { TypedEmitter } from '../../common/TypedEmitter';
+import path from 'path';
 import * as process from 'process';
-import { EnvName } from '../EnvName';
-import { WebsocketProxy } from '../mw/WebsocketProxy';
-import { ActionRecorder } from './ActionRecorder';
-import { RecordingRepository } from './RecordingRepository';
-import { SyncService } from './SyncService';
+import swaggerUi from 'swagger-ui-express';
 import { promisify } from 'util';
+import { TypedEmitter } from '../../common/TypedEmitter';
+import { Config } from '../Config';
+import { EnvName } from '../EnvName';
 import { DeviceListSocket } from '../mw/DeviceListSocket';
+import { WebsocketProxy } from '../mw/WebsocketProxy';
+import { Utils } from '../Utils';
+import { ActionRecorder } from './ActionRecorder';
 import { ConnectPreferenceService, ConnectType } from './ConnectPreferenceService';
 import { KeepAwakeService } from './KeepAwakeService';
+import { RecordingRepository } from './RecordingRepository';
+import { Service } from './Service';
+import { swaggerSpec } from './swagger';
+import { SyncService } from './SyncService';
 /// #if INCLUDE_GOOG
-import { ControlCenter as GoogControlCenter } from '../goog-device/services/ControlCenter';
+import WS from 'ws';
 import VideoSettings from '../../common/VideoSettings';
 import { AdbUtils } from '../goog-device/AdbUtils';
-import WS from 'ws';
+import { ControlCenter as GoogControlCenter } from '../goog-device/services/ControlCenter';
 /// #endif
 
 const DEFAULT_STATIC_DIR = path.join(__dirname, './public');
@@ -220,16 +222,22 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
             }
             next();
         });
+        // GET /api/docs — Swagger UI for exploring the agent HTTP API.
+        this.mainApp.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
         if (HttpServer.SERVE_STATIC && HttpServer.PUBLIC_DIR) {
             this.mainApp.use(PATHNAME, express.static(HttpServer.PUBLIC_DIR));
 
             /// #if USE_WDA_MJPEG_SERVER
 
             const { MjpegProxyFactory } = await import('../mw/MjpegProxyFactory');
+            // GET /mjpeg/:udid — Proxy the MJPEG video stream from a WDA (WebDriverAgent) device.
             this.mainApp.get('/mjpeg/:udid', new MjpegProxyFactory().proxyRequest);
             /// #endif
         }
         /// #if INCLUDE_GOOG
+        // POST /api/goog/device/pid — Get the running scrcpy server PID for a specific Android device.
+        // Body: { udid: string }
+        // Returns: { success, pid }
         this.mainApp.post('/api/goog/device/pid', async (req, res) => {
             const { udid } = req.body || {};
             if (typeof udid !== 'string' || !udid) {
@@ -247,6 +255,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(500).json({ success: false, error: message });
             }
         });
+        // POST /api/goog/device/config — Update the scrcpy video settings (crop region, bounds) for a device.
+        // Body: { udid: string, videoSettings: { crop?, bounds?, ...rest } }
+        // Returns: { success, videoSettings }
         this.mainApp.post('/api/goog/device/config', async (req, res) => {
             const { udid, videoSettings } = req.body || {};
             if (typeof udid !== 'string' || !udid) {
@@ -291,6 +302,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(400).json({ success: false, error: message });
             }
         });
+        // POST /api/goog/device/restart — Restart the scrcpy server on one or more Android devices.
+        // Body: { udid?: string, udids?: string[], pid?: number }
+        // Returns: { success, results: [{ udid, success, pid?, error? }] }
         this.mainApp.post('/api/goog/device/restart', async (req, res) => {
             const { udid, udids, pid } = req.body || {};
             const normalizedUdids = (Array.isArray(udids) ? udids : udid ? [udid] : [])
@@ -319,6 +333,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
             }
             return res.status(allSuccess ? 200 : 207).json(response);
         });
+        // POST /api/goog/device/send-binary — Send a raw binary payload to one or more devices via an ADB-forwarded WebSocket.
+        // Body: { udid?: string, udids?: string[], remote?: string, dataBase64: string, path?: string, timeoutMs?: number }
+        // Returns: { success, results: [{ udid, success, error? }] }
         this.mainApp.post('/api/goog/device/send-binary', async (req, res) => {
             const { udid, udids, remote = 'tcp:8886', dataBase64, path: wsPath = '', timeoutMs = 5000 } = req.body || {};
             const targets = (Array.isArray(udids) ? udids : udid ? [udid] : [])
@@ -383,6 +400,10 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
             const allSuccess = results.every((r) => r.success);
             return res.status(allSuccess ? 200 : 207).json({ success: allSuccess, results });
         });
+        // POST /api/goog/device/install-apk — Receive a base64-encoded APK/XAPK and save it to the upload directory.
+        // Returns the saved file path so a follow-up call to install-uploaded can install it.
+        // Body: { udid: string, dataBase64: string, fileName?: string }
+        // Returns: { success, filePath }
         this.mainApp.post('/api/goog/device/install-apk', async (req, res) => {
             const { udid, dataBase64, fileName } = req.body || {};
             if (typeof udid !== 'string' || !udid.trim()) {
@@ -417,6 +438,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(500).json({ success: false, error: message });
             }
         });
+        // POST /api/goog/device/install-apk-binary — Receive a raw binary APK/XAPK upload (multipart-free, Content-Type: */*)
+        // and save it to the upload directory. Use X-UDID, X-Filename, and X-File-Size headers.
+        // Returns: { success, filePath }
         this.mainApp.post(
             '/api/goog/device/install-apk-binary',
             express.raw({ limit: '200mb', type: '*/*' }),
@@ -464,6 +488,10 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 }
             },
         );
+        // POST /api/goog/device/install-uploaded — Install a previously uploaded APK/XAPK on a single device via ADB.
+        // The filePath must be inside the upload directory (path-traversal is rejected).
+        // Body: { udid: string, filePath: string }
+        // Returns: { success, output }
         this.mainApp.post('/api/goog/device/install-uploaded', async (req, res) => {
             const { udid, filePath } = req.body || {};
             if (typeof udid !== 'string' || !udid.trim()) {
@@ -489,7 +517,7 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
             }
         });
 
-        // Bulk install: install the same already-uploaded file to multiple devices in parallel.
+        // POST /api/goog/device/install-bulk — Install the same already-uploaded APK/XAPK on multiple devices in parallel.
         // Body: { udids: string[], filePath: string }
         // Returns: { success, results: [{ udid, success, output?, error? }] }
         this.mainApp.post('/api/goog/device/install-bulk', async (req, res) => {
@@ -524,11 +552,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
             return res.status(allSuccess ? 200 : 207).json({ success: allSuccess, results });
         });
 
-        // Enable WiFi (TCP/IP) mode and optionally connect for one or more devices.
+        // POST /api/goog/device/connect-wifi — Enable TCP/IP (WiFi) mode on one or more devices and attempt to connect.
+        // Steps: (1) adb tcpip <port>, (2) adb connect <wifiIp>:<port> (skipped if no WiFi IP is available).
         // Body: { udid?: string, udids?: string[], port?: number }
-        // Steps per device:
-        //   1. adb -s <udid> tcpip <port>   — enables TCP/IP listener on the device
-        //   2. adb connect <wifiIp>:<port>   — connects over WiFi (skipped if no WiFi IP is known)
         // Returns: { success, results: [{ udid, success, output?, error? }] }
         this.mainApp.post('/api/goog/device/connect-wifi', async (req, res) => {
             const { udid, udids, port = 5555 } = req.body || {};
@@ -582,6 +608,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
             return res.status(allSuccess ? 200 : 207).json({ success: allSuccess, results });
         });
         /// #endif
+        // POST /api/recordings/start — Begin recording user actions for an active WebSocket proxy session.
+        // Body: { session: string, recordId?: string }
+        // Returns: { success, recordId }
         this.mainApp.post('/api/recordings/start', async (req, res) => {
             const { session, recordId } = req.body || {};
             if (typeof session !== 'string' || !session.trim()) {
@@ -599,6 +628,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(400).json({ success: false, message });
             }
         });
+        // POST /api/recordings/stop — Stop the active recording for a session and finalize the file.
+        // Body: { session: string }
+        // Returns: { success, ...recordingResult }
         this.mainApp.post('/api/recordings/stop', async (req, res) => {
             const { session } = req.body || {};
             if (typeof session !== 'string' || !session.trim()) {
@@ -616,6 +648,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(400).json({ success: false, message });
             }
         });
+        // POST /api/recordings/run — Replay a saved recording on an active WebSocket proxy session.
+        // Body: { session: string, recordId: string }
+        // Returns: { success }
         this.mainApp.post('/api/recordings/run', async (req, res) => {
             const { session, recordId } = req.body || {};
             const resolvedId = ActionRecorder.normalizeId(recordId);
@@ -637,6 +672,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(400).json({ success: false, message });
             }
         });
+        // POST /api/recordings/pause — Pause an active recording or playback on a session.
+        // Body: { session: string }
+        // Returns: { success, mode }
         this.mainApp.post('/api/recordings/pause', async (req, res) => {
             const { session } = req.body || {};
             if (typeof session !== 'string' || !session.trim()) {
@@ -654,6 +692,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(400).json({ success: false, message });
             }
         });
+        // POST /api/recordings/resume — Resume a paused recording or playback on a session.
+        // Body: { session: string }
+        // Returns: { success, mode }
         this.mainApp.post('/api/recordings/resume', async (req, res) => {
             const { session } = req.body || {};
             if (typeof session !== 'string' || !session.trim()) {
@@ -671,6 +712,10 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(400).json({ success: false, message });
             }
         });
+        // POST /api/devices/connect — Switch one or more device connection modes between USB and WiFi.
+        // Accepts a single object or an array for batch processing.
+        // Body: { device: string, connect: 'wifi'|'usb', port?: number }[]
+        // Returns: { success, results: [{ device, connect, success, error? }], devices }
         this.mainApp.post('/api/devices/connect', async (req, res) => {
             const payloads = Array.isArray(req.body) ? req.body : [req.body];
             if (!payloads.length) {
@@ -798,6 +843,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
             const allSuccess = results.every((r) => r.success);
             return res.json({ success: allSuccess, results, devices });
         });
+        // POST /api/device/keep-awake — Prevent the device screen from sleeping for a given duration.
+        // Body: { device: string, seconds?: number }  (default: 30 s)
+        // Returns: { success, device, durationMs }
         this.mainApp.post('/api/device/keep-awake', async (req, res) => {
             const { device, seconds } = req.body || {};
             const deviceStr = typeof device === 'string' ? device.trim() : '';
@@ -813,6 +861,8 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(500).json({ success: false, error: message });
             }
         });
+        // GET /api/recordings — List all saved action recordings.
+        // Returns: { success, records }
         this.mainApp.get('/api/recordings', async (_req, res) => {
             try {
                 const records = await RecordingRepository.list();
@@ -822,6 +872,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(500).json({ success: false, message });
             }
         });
+        // POST /api/recordings/update-name — Rename a saved recording.
+        // Body: { recordId: string, name: string }
+        // Returns: { success }
         this.mainApp.post('/api/recordings/update-name', async (req, res) => {
             const { recordId, name } = req.body || {};
             if (typeof recordId !== 'string' || !recordId.trim()) {
@@ -838,6 +891,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(400).json({ success: false, message });
             }
         });
+        // POST /api/recordings/delete — Delete a saved recording by ID.
+        // Body: { recordId: string }
+        // Returns: { success }
         this.mainApp.post('/api/recordings/delete', async (req, res) => {
             const { recordId } = req.body || {};
             if (typeof recordId !== 'string' || !recordId.trim()) {
@@ -851,6 +907,8 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(400).json({ success: false, message });
             }
         });
+        // GET /api/sync — List the current device sync mappings (target → sync devices).
+        // Returns: { success, sync }
         this.mainApp.get('/api/sync', async (_req, res) => {
             try {
                 const sync = SyncService.getInstance().list();
@@ -860,6 +918,9 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(500).json({ success: false, message });
             }
         });
+        // POST /api/sync/set — Set a sync mapping so that actions on the target device(s) are mirrored to sync devices.
+        // Body: { target_device: string | string[], sync_devices: string[] }
+        // Returns: { success, sync }
         this.mainApp.post('/api/sync/set', async (req, res) => {
             const { target_device: targetDevice, sync_devices: syncDevices } = req.body || {};
             const targetList = Array.isArray(targetDevice) ? targetDevice : [targetDevice];
@@ -881,6 +942,8 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(400).json({ success: false, message });
             }
         });
+        // POST /api/sync/clear — Remove all device sync mappings.
+        // Returns: { success }
         this.mainApp.post('/api/sync/clear', async (req, res) => {
             try {
                 SyncService.getInstance().clear();
