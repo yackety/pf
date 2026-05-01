@@ -1036,6 +1036,116 @@ export class HttpServer extends TypedEmitter<HttpServerEvents> implements Servic
                 return res.status(500).json({ success: false, error: message });
             }
         });
+
+        // ── File Management ───────────────────────────────────────────────────
+        // Subfolder routing by extension:
+        //   .apk / .xapk / .apks  → uploads/apk/
+        //   image extensions       → uploads/images/
+        //   video extensions       → uploads/videos/
+        //   everything else        → uploads/other/
+
+        const FILE_SUBFOLDERS: Record<string, string> = {
+            apk: 'apk', xapk: 'apk', apks: 'apk',
+            jpg: 'images', jpeg: 'images', png: 'images', gif: 'images',
+            webp: 'images', bmp: 'images', svg: 'images',
+            mp4: 'videos', mov: 'videos', avi: 'videos', mkv: 'videos',
+        };
+
+        const getSubfolder = (filename: string): string => {
+            const ext = path.extname(filename).replace('.', '').toLowerCase();
+            return FILE_SUBFOLDERS[ext] ?? 'other';
+        };
+
+        // GET /api/files — List all managed files grouped by subfolder.
+        // Returns: { success, files: FileEntry[] }
+        this.mainApp.get('/api/files', async (_req, res) => {
+            try {
+                const subfolders = ['apk', 'images', 'videos', 'other'];
+                const files: object[] = [];
+                for (const sub of subfolders) {
+                    const dir = path.join(UPLOAD_DIR, sub);
+                    if (!fs.existsSync(dir)) continue;
+                    const entries = await fs.promises.readdir(dir);
+                    for (const name of entries) {
+                        const fullPath = path.join(dir, name);
+                        const stat = await fs.promises.stat(fullPath).catch(() => null);
+                        if (!stat || !stat.isFile()) continue;
+                        files.push({
+                            storedName: name,
+                            subFolder: sub,
+                            filePath: fullPath,
+                            fileSize: stat.size,
+                            createdAt: stat.birthtime,
+                        });
+                    }
+                }
+                return res.json({ success: true, files });
+            } catch (error: any) {
+                return res.status(500).json({ success: false, error: error?.message || 'Failed to list files' });
+            }
+        });
+
+        // POST /api/files/upload — Upload a file (binary body). Detected subfolder from filename extension.
+        // Headers: X-Filename (required), X-File-Size (optional for validation)
+        // Returns: { success, storedName, subFolder, filePath, fileSize }
+        this.mainApp.post(
+            '/api/files/upload',
+            express.raw({ limit: '500mb', type: '*/*' }),
+            async (req, res) => {
+                const rawName = (req.header('x-filename') || '').toString().trim();
+                const expectedSizeHeader = req.header('x-file-size');
+                if (!rawName) {
+                    return res.status(400).json({ success: false, error: 'X-Filename header is required' });
+                }
+                const safeName = rawName.replace(/[^a-zA-Z0-9_.\-]/g, '_');
+                const buffer = req.body as Buffer;
+                if (!buffer || !Buffer.isBuffer(buffer) || buffer.length === 0) {
+                    return res.status(400).json({ success: false, error: 'Empty file body' });
+                }
+                if (expectedSizeHeader) {
+                    const expected = parseInt(expectedSizeHeader, 10);
+                    if (!isNaN(expected) && expected !== buffer.length) {
+                        return res.status(400).json({ success: false, error: `Size mismatch: got ${buffer.length}, expected ${expected}` });
+                    }
+                }
+                const sub = getSubfolder(safeName);
+                const dir = path.join(UPLOAD_DIR, sub);
+                const storedName = `${Date.now()}-${Math.random().toString(16).slice(2)}-${safeName}`;
+                const filePath = path.join(dir, storedName);
+                try {
+                    await fs.promises.mkdir(dir, { recursive: true });
+                    await fs.promises.writeFile(filePath, buffer);
+                    const stat = await fs.promises.stat(filePath);
+                    return res.json({ success: true, storedName, subFolder: sub, filePath, fileSize: stat.size });
+                } catch (error: any) {
+                    return res.status(500).json({ success: false, error: error?.message || 'Failed to save file' });
+                }
+            },
+        );
+
+        // DELETE /api/files — Delete a file by its absolute path (must be inside uploads/).
+        // Body: { filePath: string }
+        // Returns: { success }
+        this.mainApp.delete('/api/files', async (req, res) => {
+            const { filePath } = req.body || {};
+            if (typeof filePath !== 'string' || !filePath.trim()) {
+                return res.status(400).json({ success: false, error: 'Invalid "filePath"' });
+            }
+            const resolved = path.resolve(filePath);
+            if (!resolved.startsWith(UPLOAD_DIR)) {
+                return res.status(400).json({ success: false, error: 'filePath not allowed' });
+            }
+            if (!fs.existsSync(resolved)) {
+                return res.status(404).json({ success: false, error: 'File not found' });
+            }
+            try {
+                await fs.promises.unlink(resolved);
+                return res.json({ success: true });
+            } catch (error: any) {
+                return res.status(500).json({ success: false, error: error?.message || 'Failed to delete file' });
+            }
+        });
+
         // GET /api/recordings — List all saved action recordings.
         // Returns: { success, records }
         this.mainApp.get('/api/recordings', async (_req, res) => {
