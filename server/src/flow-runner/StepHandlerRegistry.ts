@@ -17,6 +17,11 @@ export interface StepContext {
      * StepExecutor reads this and stores it in StepResult.output.
      */
     output?: string;
+    /**
+     * Handlers write the winning selector strategy here (e.g. 'testId', 'xpath').
+     * StepExecutor reads this and stores it in StepResult.selectorStrategy.
+     */
+    selectorStrategy?: string;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,111 @@
+import { SelectorResolver } from '../SelectorResolver';
 import { StepHandlerRegistry } from '../StepHandlerRegistry';
 import type { AppiumDriver, TapTarget } from '../types';
+
+// ---------------------------------------------------------------------------
+// Interaction handlers
+// ---------------------------------------------------------------------------
+
+// ---- element resolution helper ---------------------------------------------
+
+async function resolve(
+    driver: AppiumDriver,
+    target: string | TapTarget,
+    platform: 'android' | 'ios',
+    appId: string,
+    timeout: number,
+): Promise<{ element: WebdriverIO.Element; strategy: string }> {
+    return SelectorResolver.resolve(driver, target, platform, appId, timeout);
+}
+
+// ---- handlers --------------------------------------------------------------
+
+StepHandlerRegistry.register('tapOn', async (ctx) => {
+    if (ctx.step.kind !== 'tapOn') return;
+    const { element, strategy } = await resolve(
+        ctx.driver, ctx.step.target, ctx.header.platform, ctx.header.appId, ctx.timeout,
+    );
+    ctx.selectorStrategy = strategy;
+    await element.click();
+});
+
+StepHandlerRegistry.register('longPressOn', async (ctx) => {
+    if (ctx.step.kind !== 'longPressOn') return;
+    const { element, strategy } = await resolve(
+        ctx.driver, ctx.step.target, ctx.header.platform, ctx.header.appId, ctx.timeout,
+    );
+    ctx.selectorStrategy = strategy;
+    await ctx.driver.touchAction([{ action: 'longPress', element }, { action: 'release' }]);
+});
+
+StepHandlerRegistry.register('doubleTapOn', async (ctx) => {
+    if (ctx.step.kind !== 'doubleTapOn') return;
+    const { element, strategy } = await resolve(
+        ctx.driver, ctx.step.target, ctx.header.platform, ctx.header.appId, ctx.timeout,
+    );
+    ctx.selectorStrategy = strategy;
+    await element.doubleClick();
+});
+
+StepHandlerRegistry.register('inputText', async ({ driver, step }) => {
+    if (step.kind !== 'inputText') return;
+    // Find the focused element (single round-trip; no key-by-key emulation).
+    const active = await driver.getActiveElement();
+    await active.setValue(step.text);
+});
+
+StepHandlerRegistry.register('clearText', async ({ driver }) => {
+    const active = await driver.getActiveElement();
+    await active.clearValue();
+});
+
+StepHandlerRegistry.register('hideKeyboard', async ({ driver }) => {
+    await driver.hideKeyboard();
+});
+
+StepHandlerRegistry.register('scroll', async ({ driver, step, header }) => {
+    if (step.kind !== 'scroll') return;
+    const { direction } = step;
+
+    if (header.platform === 'android') {
+        await driver.execute('mobile: scrollGesture', {
+            left: 200, top: 200, width: 400, height: 400,
+            direction,
+            percent: 0.75,
+        });
+    } else {
+        await driver.execute('mobile: scroll', { direction });
+    }
+});
+
+StepHandlerRegistry.register('scrollTo', async (ctx) => {
+    if (ctx.step.kind !== 'scrollTo') return;
+    const { element, strategy } = await resolve(
+        ctx.driver, ctx.step.target, ctx.header.platform, ctx.header.appId, ctx.timeout,
+    );
+    ctx.selectorStrategy = strategy;
+    await element.scrollIntoView();
+});
+
+StepHandlerRegistry.register('swipe', async ({ driver, step, header }) => {
+    if (step.kind !== 'swipe') return;
+    const [fx, fy] = step.from;
+    const [tx, ty] = step.to;
+
+    if (header.platform === 'android') {
+        await driver.execute('mobile: swipeGesture', {
+            left: fx, top: fy, width: tx - fx, height: ty - fy,
+            direction: tx > fx ? 'right' : tx < fx ? 'left' : ty > fy ? 'down' : 'up',
+            percent: 1.0,
+        });
+    } else {
+        await driver.execute('mobile: swipe', {
+            startX: fx, startY: fy,
+            endX:   tx, endY:   ty,
+        });
+    }
+});
+
 
 // ---------------------------------------------------------------------------
 // Interaction handlers

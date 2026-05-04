@@ -97,7 +97,7 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
 
 ## Phase 3 — Selector Resolver (basic, no OCR)
 
-- [ ] **3.1** Create `src/flow-runner/SelectorResolver.ts`
+- [x] **3.1** Create `src/flow-runner/SelectorResolver.ts`
   - `resolve(driver, target, platform, appId, timeout): Promise<WebdriverIO.Element>`
   - Implement strategies 1–6 from SPEC §9 in priority order (stop at first hit):
     1. `testId` → Android `id: "${appId}:id/${testId}"` / iOS `~${testId}`
@@ -109,14 +109,14 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
   - Each strategy is tried in a `try/catch` — only throws if ALL strategies fail
   - Expose `lastStrategy` on result so `StepExecutor` can log it
 
-- [ ] **3.2** Create `src/flow-runner/SelfHealingCache.ts`
+- [x] **3.2** Create `src/flow-runner/SelfHealingCache.ts`
   - `load(): Cache` — reads `.cache/selectors.json` (creates empty file if missing)
   - `save(cache: Cache): void` — writes atomically (write to `.tmp` then rename)
   - `get(appId, appVersion, label): CachedSelector | undefined`
   - `set(appId, appVersion, label, selector: CachedSelector): void`
   - Hook into `SelectorResolver`: check cache before strategy 1, update cache after success
 
-- [ ] **3.3** Update `SelectorResolver` to use `SelfHealingCache`
+- [x] **3.3** Update `SelectorResolver` to use `SelfHealingCache`
   - On cache hit: try the cached selector first — if it works, return immediately (skips all other strategies)
   - On cache miss or stale hit: run strategies 1–6, then write winner to cache
   - On total failure: emit `SELECTOR_FAILED` event (OCR fallback is Phase 6, optional)

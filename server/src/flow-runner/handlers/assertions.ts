@@ -1,3 +1,4 @@
+import { SelectorResolver } from '../SelectorResolver';
 import { StepHandlerRegistry } from '../StepHandlerRegistry';
 import type { AppiumDriver } from '../types';
 
@@ -8,120 +9,139 @@ import type { AppiumDriver } from '../types';
 
 const POLL_INTERVAL_MS = 300;
 
-/** Find by accessibility label or text — simple probe used locally (SelectorResolver replaces this in Phase 3). */
-async function probel(
+async function resolveEl(
     driver: AppiumDriver,
     target: string,
-): Promise<WebdriverIO.Element> {
-    return driver.$(`~${target}`);
+    platform: 'android' | 'ios',
+    appId: string,
+    timeout: number,
+): Promise<{ element: WebdriverIO.Element; strategy: string }> {
+    return SelectorResolver.resolve(driver, target, platform, appId, timeout);
 }
 
 // ---- assertVisible ---------------------------------------------------------
 
-StepHandlerRegistry.register('assertVisible', async ({ driver, step, timeout }) => {
-    if (step.kind !== 'assertVisible') return;
-    const el = await probel(driver, step.target);
-    await driver.waitUntil(
-        () => el.isDisplayed(),
+StepHandlerRegistry.register('assertVisible', async (ctx) => {
+    if (ctx.step.kind !== 'assertVisible') return;
+    const { element, strategy } = await resolveEl(
+        ctx.driver, ctx.step.target, ctx.header.platform, ctx.header.appId, ctx.timeout,
+    );
+    ctx.selectorStrategy = strategy;
+    await ctx.driver.waitUntil(
+        () => element.isDisplayed(),
         {
-            timeout,
+            timeout: ctx.timeout,
             interval: POLL_INTERVAL_MS,
-            timeoutMsg: `assertVisible: "${step.target}" not visible after ${timeout} ms`,
+            timeoutMsg: `assertVisible: "${ctx.step.target}" not visible after ${ctx.timeout} ms`,
         },
     );
 });
 
 // ---- assertNotVisible ------------------------------------------------------
 
-StepHandlerRegistry.register('assertNotVisible', async ({ driver, step, timeout }) => {
-    if (step.kind !== 'assertNotVisible') return;
-    await driver.waitUntil(
+StepHandlerRegistry.register('assertNotVisible', async (ctx) => {
+    if (ctx.step.kind !== 'assertNotVisible') return;
+    const { target } = ctx.step;
+    await ctx.driver.waitUntil(
         async () => {
             try {
-                const el = await probel(driver, step.target);
-                return !(await el.isDisplayed());
+                const { element } = await resolveEl(
+                    ctx.driver, target,
+                    ctx.header.platform, ctx.header.appId, 1000,
+                );
+                return !(await element.isDisplayed());
             } catch {
-                // Element not present at all — counts as not visible.
                 return true;
             }
         },
         {
-            timeout,
+            timeout: ctx.timeout,
             interval: POLL_INTERVAL_MS,
-            timeoutMsg: `assertNotVisible: "${step.target}" still visible after ${timeout} ms`,
+            timeoutMsg: `assertNotVisible: "${target}" still visible after ${ctx.timeout} ms`,
         },
     );
 });
 
 // ---- assertChecked ---------------------------------------------------------
 
-StepHandlerRegistry.register('assertChecked', async ({ driver, step, timeout }) => {
-    if (step.kind !== 'assertChecked') return;
-    const el = await probel(driver, step.target);
-    await driver.waitUntil(
+StepHandlerRegistry.register('assertChecked', async (ctx) => {
+    if (ctx.step.kind !== 'assertChecked') return;
+    const { element, strategy } = await resolveEl(
+        ctx.driver, ctx.step.target, ctx.header.platform, ctx.header.appId, ctx.timeout,
+    );
+    ctx.selectorStrategy = strategy;
+    await ctx.driver.waitUntil(
         async () => {
-            const checked = await el.getAttribute('checked');
+            const checked = await element.getAttribute('checked');
             return checked === 'true' || checked === 'checked';
         },
         {
-            timeout,
+            timeout: ctx.timeout,
             interval: POLL_INTERVAL_MS,
-            timeoutMsg: `assertChecked: "${step.target}" is not checked after ${timeout} ms`,
+            timeoutMsg: `assertChecked: "${ctx.step.target}" is not checked after ${ctx.timeout} ms`,
         },
     );
 });
 
 // ---- assertEqual -----------------------------------------------------------
 
-StepHandlerRegistry.register('assertEqual', async ({ driver, step, timeout }) => {
-    if (step.kind !== 'assertEqual') return;
-    const el = await driver.$(`~${step.id}`);
-    await driver.waitUntil(
-        async () => {
-            const text = await el.getText();
-            return text === step.value;
-        },
+StepHandlerRegistry.register('assertEqual', async (ctx) => {
+    if (ctx.step.kind !== 'assertEqual') return;
+    const { id, value } = ctx.step;
+    const { element, strategy } = await resolveEl(
+        ctx.driver, id, ctx.header.platform, ctx.header.appId, ctx.timeout,
+    );
+    ctx.selectorStrategy = strategy;
+    await ctx.driver.waitUntil(
+        async () => (await element.getText()) === value,
         {
-            timeout,
+            timeout: ctx.timeout,
             interval: POLL_INTERVAL_MS,
-            timeoutMsg: `assertEqual: "${step.id}" value never became "${step.value}" within ${timeout} ms`,
+            timeoutMsg: `assertEqual: "${id}" value never became "${value}" within ${ctx.timeout} ms`,
         },
     );
 });
 
 // ---- waitForVisible --------------------------------------------------------
-// Same as assertVisible but does NOT throw on timeout — used as a sync point.
 
-StepHandlerRegistry.register('waitForVisible', async ({ driver, step, timeout }) => {
-    if (step.kind !== 'waitForVisible') return;
+StepHandlerRegistry.register('waitForVisible', async (ctx) => {
+    if (ctx.step.kind !== 'waitForVisible') return;
     try {
-        const el = await probel(driver, step.target);
-        await driver.waitUntil(() => el.isDisplayed(), {
-            timeout,
+        const { element, strategy } = await resolveEl(
+            ctx.driver, ctx.step.target, ctx.header.platform, ctx.header.appId, ctx.timeout,
+        );
+        ctx.selectorStrategy = strategy;
+        await ctx.driver.waitUntil(() => element.isDisplayed(), {
+            timeout: ctx.timeout,
             interval: POLL_INTERVAL_MS,
         });
     } catch {
-        // Intentionally silent — this is a sync point, not an assertion.
+        // Intentionally silent — this is a sync point, not a hard assertion.
     }
 });
 
 // ---- waitForNotVisible -----------------------------------------------------
 
-StepHandlerRegistry.register('waitForNotVisible', async ({ driver, step, timeout }) => {
-    if (step.kind !== 'waitForNotVisible') return;
+StepHandlerRegistry.register('waitForNotVisible', async (ctx) => {
+    if (ctx.step.kind !== 'waitForNotVisible') return;
+    const { target } = ctx.step;
     try {
-        await driver.waitUntil(
+        await ctx.driver.waitUntil(
             async () => {
                 try {
-                    const el = await probel(driver, step.target);
-                    return !(await el.isDisplayed());
+                    const { element } = await resolveEl(
+                        ctx.driver, target,
+                        ctx.header.platform, ctx.header.appId, 1000,
+                    );
+                    return !(await element.isDisplayed());
                 } catch {
                     return true;
                 }
             },
-            { timeout, interval: POLL_INTERVAL_MS },
+            { timeout: ctx.timeout, interval: POLL_INTERVAL_MS },
         );
     } catch {
         // Intentionally silent.
     }
 });
+
