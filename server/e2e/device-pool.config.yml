@@ -1,0 +1,32 @@
+# Device pool for local development and CI.
+#
+# UDIDs live HERE and only here — never in flows/*.yml files.
+#
+# How to get your device UDID:
+#   iOS:     xcrun devicectl list devices
+#             or: xcrun simctl list devices (simulators)
+#   Android: adb devices -l
+#
+# In CI, override UDIDs via the DEVICE_UDID environment variable.
+# Do NOT commit real CI device UDIDs to this file.
+#
+# Each entry:
+#   udid      - required, unique device identifier
+#   platform  - required, "ios" or "android"
+#   osVersion - required, e.g. "17.4" or "14"
+#   tags      - optional list used by DevicePool.acquire() for filtering
+
+devices:
+  - udid: "<your-ios-udid>"       # replace with: xcrun devicectl list devices
+    platform: ios
+    osVersion: "17.4"
+    tags:
+      - local
+      - ios
+
+  # - udid: "<your-android-udid>" # replace with: adb devices -l
+  #   platform: android
+  #   osVersion: "14"
+  #   tags:
+  #     - local
+  #     - android

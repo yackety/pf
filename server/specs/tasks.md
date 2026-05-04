@@ -125,7 +125,7 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
 
 ## Phase 4 — Device Pool & Appium Server Manager
 
-- [ ] **4.1** Create `e2e/device-pool.config.yml`
+- [x] **4.1** Create `e2e/device-pool.config.yml`
   - UDIDs live **here and only here** — never in `flows/*.yml`
   - Start with a single real device or simulator for local dev:
     ```yaml
@@ -137,10 +137,10 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
     ```
   - In CI, override UDIDs via env vars (`DEVICE_UDID`) — do not commit real CI device UDIDs to this file.
 
-- [ ] **4.2** Create `src/flow-runner/pool/DeviceRecord.ts`
+- [x] **4.2** Create `src/flow-runner/pool/DeviceRecord.ts`
   - Interface: `{ udid, platform, osVersion, tags, appiumPort: number | null }`
 
-- [ ] **4.3** Create `src/flow-runner/pool/AppiumServerManager.ts`
+- [x] **4.3** Create `src/flow-runner/pool/AppiumServerManager.ts`
   - `spawn(udid: string): Promise<number>` — start `appium --port <auto> --log <logPath> --log-level warn`
     - Jest log path: `e2e/logs/appium-<udid>.log`
     - API log path: `logs/appium-<udid>.log`
@@ -150,7 +150,7 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
   - `kill(udid: string): Promise<void>` — SIGTERM the child process
   - Store `{ udid → { port, proc } }` in a module-level Map
 
-- [ ] **4.4** Create `src/flow-runner/pool/DevicePool.ts`
+- [x] **4.4** Create `src/flow-runner/pool/DevicePool.ts`
   - `init(configPath: string): void` — loads `device-pool.config.yml`, reads devices into pool
   - `acquire(platform: string, tags: string[], pinnedUdid?: string): Promise<DeviceRecord>`
     - If `pinnedUdid` is set, wait for that specific device
