@@ -1,10 +1,10 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-} from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    inject,
+} from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle/theme-toggle.component';
@@ -23,7 +23,7 @@ import { NAV_ITEMS, NavItem } from '../nav-items';
         aria-label="Main navigation"
       >
         <!-- Logo -->
-        <div class="flex items-center gap-3 px-6 py-5 border-b border-outline-variant">
+        <div class="flex items-center gap-3 px-6 h-16 shrink-0 border-b border-outline-variant">
           <img ngSrc="/lazie_logo.png" width="96" height="28" alt="Lazie" priority />
         </div>
 

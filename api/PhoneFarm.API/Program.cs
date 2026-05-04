@@ -9,6 +9,7 @@ using PhoneFarm.Application.Dashboard.Services;
 using PhoneFarm.Application.Devices.Services;
 using PhoneFarm.Application.Platforms.Services;
 using PhoneFarm.Application.Users.Services;
+using PhoneFarm.Application.Files.Services;
 using PhoneFarm.API.Hubs;
 using PhoneFarm.API.Services;
 using PhoneFarm.Infrastructure.Data;
@@ -29,6 +30,8 @@ builder.Services.AddScoped<IPlatformService, PlatformService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAgentProxyService, AgentProxyService>();
+builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IFileProxyService, FileProxyService>();
 
 // ── SignalR ─────────────────────────────────────────────────────────────────
 builder.Services.AddSignalR();

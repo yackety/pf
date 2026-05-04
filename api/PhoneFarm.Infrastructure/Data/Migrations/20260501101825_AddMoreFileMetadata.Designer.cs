@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PhoneFarm.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PhoneFarm.Infrastructure.Data;
 namespace PhoneFarm.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(PhoneFarmDbContext))]
-    partial class PhoneFarmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260501101825_AddMoreFileMetadata")]
+    partial class AddMoreFileMetadata
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

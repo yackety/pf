@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PhoneFarm.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PhoneFarm.Infrastructure.Data;
 namespace PhoneFarm.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(PhoneFarmDbContext))]
-    partial class PhoneFarmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260501093946_AddFileRecords")]
+    partial class AddFileRecords
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -316,14 +319,6 @@ namespace PhoneFarm.Infrastructure.Data.Migrations
                     b.Property<int?>("AgentId")
                         .HasColumnType("int");
 
-                    b.Property<string>("AppName")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Architectures")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -353,17 +348,6 @@ namespace PhoneFarm.Infrastructure.Data.Migrations
                     b.Property<string>("PackageName")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
-
-                    b.Property<int?>("PermissionsCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RequiresAndroid")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Signature")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("StoredName")
                         .IsRequired()

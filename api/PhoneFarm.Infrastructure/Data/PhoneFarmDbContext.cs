@@ -16,6 +16,7 @@ public class PhoneFarmDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<DeviceSessionLog> DeviceSessionLogs => Set<DeviceSessionLog>();
     public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
+    public DbSet<FileRecord> FileRecords => Set<FileRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,5 +30,6 @@ public class PhoneFarmDbContext : DbContext
         modelBuilder.ApplyConfiguration(new UserConfiguration());
         modelBuilder.ApplyConfiguration(new DeviceSessionLogConfiguration());
         modelBuilder.ApplyConfiguration(new UserRefreshTokenConfiguration());
+        modelBuilder.ApplyConfiguration(new FileRecordConfiguration());
     }
 }
