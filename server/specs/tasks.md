@@ -11,7 +11,7 @@ Progress legend: `[ ]` not started · `[~]` in progress · `[x]` done
 
 No Appium required. Pure TypeScript. Can be built and unit-tested offline.
 
-- [ ] **1.1** Create `src/flow-runner/types.ts`
+- [x] **1.1** Create `src/flow-runner/types.ts`
   - Interfaces: `FlowHeader`, `FlowStep` (union of all step shapes), `StepResult`, `DeviceRecord`, `RunResult`, `RunContext`
   - `FlowStep` must be a discriminated union so handlers are type-safe
   - `RunContext` carries per-run configuration injected by `FlowRunner`:
@@ -37,12 +37,12 @@ No Appium required. Pure TypeScript. Can be built and unit-tested offline.
       // … all others from SPEC §3
     ```
 
-- [ ] **1.2** Create `src/flow-runner/EnvInterpolator.ts`
+- [x] **1.2** Create `src/flow-runner/EnvInterpolator.ts`
   - `interpolate(value: string, env: Record<string, string>): string`
   - Replaces `$VAR` and `${VAR}` using `header.env` merged over `process.env`
   - Does NOT throw on missing vars — leaves them as-is and emits a warning
 
-- [ ] **1.3** Create `src/flow-runner/FlowParser.ts`
+- [x] **1.3** Create `src/flow-runner/FlowParser.ts`
   - `FlowParser.parse(yamlString: string, overrides?: { udid?: string; env?: Record<string,string> }): { header: FlowHeader; steps: FlowStep[] }`
   - Split on first `\n---\n` (document separator)
   - Parse header block with the `yaml` package (already in `package.json`)
@@ -51,7 +51,7 @@ No Appium required. Pure TypeScript. Can be built and unit-tested offline.
   - Apply `EnvInterpolator` to all string values in steps
   - Throw descriptive errors for unknown step types or missing required fields
 
-- [ ] **1.4** Write unit tests for `FlowParser` and `EnvInterpolator`
+- [x] **1.4** Write unit tests for `FlowParser` and `EnvInterpolator`
   - File: `src/flow-runner/__tests__/FlowParser.test.ts`
   - Test: valid YAML parses correctly, `$VAR` substitution, missing `appId` throws, unknown step type throws
   - Run with existing Jest setup (no device needed)

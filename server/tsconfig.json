@@ -25,6 +25,7 @@
     "./src/server/**/*",
     "./src/common/**/*",
     "./src/packages/**/*",
-    "./src/types/**/*"
+    "./src/types/**/*",
+    "./src/flow-runner/**/*"
   ]
 }

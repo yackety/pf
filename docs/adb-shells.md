@@ -31,3 +31,6 @@ adb -s B2NGAA8871301377 shell settings put system user_rotation
 
 -- auto script
 adb -s B2NGAA8871301377 shell monkey -p com.android.chrome 1
+
+- pointer_location
+adb -s 988a1b313954434b5930 shell settings put system pointer_location 1
