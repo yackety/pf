@@ -1,5 +1,6 @@
 appId: com.example.app
-udid: 00008110-001234ABCDEF
+# udid: intentionally omitted — supply via DEVICE_UDID env var at runtime:
+#   DEVICE_UDID=<your-udid> npm run flow:test
 platform: ios
 name: Login Flow
 timeout: 10000

@@ -10,7 +10,10 @@
         "start:dist": "node dist/index.js",
         "start": "npm run build && npm run start:dist",
         "start:config": "npm run build && WS_SCRCPY_CONFIG=config.yaml node dist/index.js",
-        "dev:config": "WS_SCRCPY_CONFIG=config.yaml node dist/index.js"
+        "dev:config": "WS_SCRCPY_CONFIG=config.yaml node dist/index.js",
+        "flow:test": "jest --config e2e/jest.config.ts",
+        "flow:test:band": "jest --config e2e/jest.config.ts --runInBand",
+        "flow:watch": "jest --config e2e/jest.config.ts --watch --runInBand"
     },
     "author": "Sergey Volkov <drauggres@gmail.com>",
     "license": "MIT",

@@ -351,7 +351,7 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
 
 ## Phase 9 — Developer Experience
 
-- [ ] **9.1** Add npm scripts to `package.json`
+- [x] **9.1** Add npm scripts to `package.json`
   ```json
   "scripts": {
     "flow:test":  "jest --config e2e/jest.config.ts",
@@ -360,11 +360,11 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
   }
   ```
 
-- [ ] **9.2** Create `flows/login.yml` with real device values
+- [x] **9.2** Create `flows/login.yml` with real device values
   - Replace placeholder `udid` with an actual device UDID
   - Replace placeholder `appId` with a real installed app
 
-- [ ] **9.3** Add `.gitignore` entries
+- [x] **9.3** Add `.gitignore` entries
   ```
   # Jest outputs
   e2e/screenshots/
@@ -382,7 +382,7 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
   # flows/                       ← committed YAML (no udid fields inside)
   ```
 
-- [ ] **9.4** README section — "Running flows locally"
+- [x] **9.4** README section — "Running flows locally"
   - Prerequisites checklist (Appium, drivers, `adb`/`xcrun`, env vars)
   - Quick start: one command to run all flows, one to run a single flow
   - How to add a new flow YAML
