@@ -62,31 +62,31 @@ No Appium required. Pure TypeScript. Can be built and unit-tested offline.
 
 Still no Appium. Registry is just a `Map`. Handlers are registered but not yet called with a real driver.
 
-- [ ] **2.1** Create `src/flow-runner/StepHandlerRegistry.ts`
+- [x] **2.1** Create `src/flow-runner/StepHandlerRegistry.ts`
   - `register(kind: string, fn: StepHandler): void`
   - `resolve(kind: string): StepHandler` — throws `Unknown step type` if not found
   - `StepHandler` type: `(ctx: StepContext) => Promise<void>`
   - `StepContext`: `{ driver: WebdriverIO.Browser; step: FlowStep; header: FlowHeader }`
 
-- [ ] **2.2** Create `src/flow-runner/handlers/lifecycle.ts`
+- [x] **2.2** Create `src/flow-runner/handlers/lifecycle.ts`
   - Registers: `launchApp`, `restartApp`, `stopApp`, `clearApp`
   - `launchApp` → `driver.activateApp(header.appId)`
   - `restartApp` → `driver.terminateApp(header.appId)` + `driver.activateApp(header.appId)`
   - `clearApp` → Android: `driver.execute('mobile: clearApp', { appId })` / iOS: terminate + relaunch (best effort)
 
-- [ ] **2.3** Create `src/flow-runner/handlers/interaction.ts`
+- [x] **2.3** Create `src/flow-runner/handlers/interaction.ts`
   - Registers: `tapOn`, `longPressOn`, `doubleTapOn`, `inputText`, `clearText`, `hideKeyboard`, `scroll`, `scrollTo`, `swipe`
   - `tapOn` delegates to `SelectorResolver` (stub in Phase 3, replace in Phase 4)
   - `inputText` → find active element → `setValue(text)` (single round-trip, not key-by-key)
   - `scroll` → use `driver.execute('mobile: scrollGesture', …)` (Android) / `driver.execute('mobile: scroll', …)` (iOS)
 
-- [ ] **2.4** Create `src/flow-runner/handlers/assertions.ts`
+- [x] **2.4** Create `src/flow-runner/handlers/assertions.ts`
   - Registers: `assertVisible`, `assertNotVisible`, `assertChecked`, `assertEqual`, `waitForVisible`, `waitForNotVisible`
   - `assertVisible` → `driver.waitUntil(() => el.isDisplayed(), { timeout, interval: 300 })` — NO hard sleep
   - `assertNotVisible` → confirm element does not exist OR `isDisplayed() === false`
   - `waitForVisible` / `waitForNotVisible` → same as assert variants but do not fail (used as sync points)
 
-- [ ] **2.5** Create `src/flow-runner/handlers/device.ts`
+- [x] **2.5** Create `src/flow-runner/handlers/device.ts`
   - Registers: `wait`, `back`, `home`, `screenshot`, `runScript`
   - `wait` → `driver.pause(ms)` — document it as last-resort only
   - `back` → Android: `driver.pressKeyCode(4)` / iOS: `driver.back()`

@@ -149,3 +149,22 @@ export type RunState =
     | { status: 'running';  startedAt: number }
     | { status: 'done';     startedAt: number; finishedAt: number; result: RunResult }
     | { status: 'failed';   startedAt: number; finishedAt: number; error: string };
+
+// ---------------------------------------------------------------------------
+// AppiumDriver — extends WebdriverIO.Browser with Appium-specific commands
+// that are not in the older wdio v6 type declarations.
+// ---------------------------------------------------------------------------
+
+export interface AppiumDriver extends WebdriverIO.Browser {
+    /** Bring app to foreground (Appium). */
+    activateApp(appId: string): Promise<void>;
+    /** Terminate app, returns true if it was running (Appium). */
+    terminateApp(appId: string): Promise<boolean>;
+    /** Return the currently focused element (WebDriver). */
+    getActiveElement(): Promise<WebdriverIO.Element>;
+    /** Dismiss the soft keyboard (Appium). */
+    hideKeyboard(): Promise<void>;
+    /** Take a screenshot and return raw base64 PNG (standard WebDriver). */
+    takeScreenshot(): Promise<string>;
+}
+
