@@ -205,13 +205,13 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
 
 ## Phase 6 — Jest e2e Wrapper
 
-- [ ] **6.1** Add dev dependencies to `package.json`
+- [x] **6.1** Add dev dependencies to `package.json`
   ```bash
   npm install -D jest ts-jest @types/jest jest-junit jest-html-reporters
   npm install webdriverio glob p-limit
   ```
 
-- [ ] **6.2** Create `e2e/tsconfig.json`
+- [x] **6.2** Create `e2e/tsconfig.json`
   ```json
   {
     "extends": "../tsconfig.json",
@@ -220,7 +220,7 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
   }
   ```
 
-- [ ] **6.3** Create `e2e/jest.config.ts`
+- [x] **6.3** Create `e2e/jest.config.ts`
   ```ts
   export default {
     preset: 'ts-jest',
@@ -236,17 +236,17 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
   };
   ```
 
-- [ ] **6.4** Create `e2e/setup/globalSetup.ts`
+- [x] **6.4** Create `e2e/setup/globalSetup.ts`
   - `DevicePool.init('e2e/device-pool.config.yml')`
   - For each device in pool: `AppiumServerManager.spawn(udid)` (in parallel), logs to `e2e/logs/appium-<udid>.log`
   - Write port map to `/tmp/appium-ports-<runId>.json` for workers to read
   - Verify all Appium servers are healthy before returning
 
-- [ ] **6.5** Create `e2e/setup/globalTeardown.ts`
+- [x] **6.5** Create `e2e/setup/globalTeardown.ts`
   - For each spawned Appium process: `AppiumServerManager.kill(udid)`
   - Delete the temp port map file
 
-- [ ] **6.6** Create `e2e/AppiumFlowRunner.spec.ts`
+- [x] **6.6** Create `e2e/AppiumFlowRunner.spec.ts`
   - Glob `flows/**/*.yml`
   - For each file: `FlowParser.parse(...)` → `describe` block → `DevicePool.acquire` in `beforeAll`
   - Build `RunContext` for each run:
