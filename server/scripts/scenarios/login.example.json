@@ -1,0 +1,28 @@
+{
+  "scenario": "login",
+  "session": "emulator-5554",
+  "udid": "emulator-5554",
+  "recordId": "login-flow-001",
+  "preSteps": [
+      {
+          "type": "shell",
+          "command": "am force-stop com.example.app"
+      },
+      {
+          "type": "open-url",
+          "url": "https://example.com/login"
+      },
+      {
+          "type": "wait-for-shell",
+          "command": "dumpsys window windows | grep mCurrentFocus",
+          "contains": "com.android.chrome",
+          "timeoutMs": 15000,
+          "intervalMs": 500
+      },
+      { "type": "swipe", "x": 500, "fromY": 1600, "toY": 500, "durationMs": 350 },
+      { "type": "tap", "x": 103, "y": 1774 },
+      { "type": "text", "text": "my_username" },
+      { "type": "key", "keycode": 66 },
+			{ "type": "wait", "ms": 500 }
+  ]
+}

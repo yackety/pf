@@ -1,0 +1,14 @@
+appId: com.example.app
+udid: 00008110-001234ABCDEF
+platform: ios
+name: Login Flow
+timeout: 10000
+resetApp: false
+---
+- launchApp
+- tapOn: "Username"
+- inputText: "testuser"
+- tapOn: "Password"
+- inputText: "password123"
+- tapOn: "Submit"
+- assertVisible: "Welcome"
