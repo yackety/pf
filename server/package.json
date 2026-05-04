@@ -41,6 +41,7 @@
         "@types/node-forge": "^0.10.0",
         "@types/npmlog": "^4.1.4",
         "@types/swagger-ui-express": "^4.1.8",
+        "@types/uuid": "^10.0.0",
         "@types/webpack-node-externals": "^2.5.3",
         "@types/ws": "^7.4.7",
         "@typescript-eslint/eslint-plugin": "^5.18.0",

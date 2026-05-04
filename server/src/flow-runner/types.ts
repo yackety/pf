@@ -166,5 +166,7 @@ export interface AppiumDriver extends WebdriverIO.Browser {
     hideKeyboard(): Promise<void>;
     /** Take a screenshot and return raw base64 PNG (standard WebDriver). */
     takeScreenshot(): Promise<string>;
+    /** Delete / close the WebdriverIO session. */
+    deleteSession(): Promise<void>;
 }
 

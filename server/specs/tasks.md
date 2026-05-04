@@ -163,7 +163,7 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
 
 ## Phase 5 — Session Manager & Step Executor
 
-- [ ] **5.1** Create `src/flow-runner/SessionManager.ts`
+- [x] **5.1** Create `src/flow-runner/SessionManager.ts`
   - `create(header: FlowHeader, device: DeviceRecord): Promise<WebdriverIO.Browser>`
   - Build WebdriverIO capabilities object based on `platform`:
     ```ts
@@ -179,7 +179,7 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
   - Set implicit wait to `0` — all waits are explicit via `waitUntil`
   - `destroy(driver): Promise<void>` — `driver.deleteSession()` with a 5 s timeout
 
-- [ ] **5.2** Create `src/flow-runner/StepExecutor.ts`
+- [x] **5.2** Create `src/flow-runner/StepExecutor.ts`
   - `run(driver, step, header, ctx: RunContext): Promise<StepResult>`
   - Resolve handler from `StepHandlerRegistry`
   - Retry loop: `stepRetries` attempts with `500ms * attempt` backoff
@@ -187,7 +187,7 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
   - Return `StepResult`: `{ step, kind, status, durationMs, attempt, screenshotPath?, error?, selectorStrategy? }`
   - Emit a structured log line to `ctx.logPath` (JSONL) after each step
 
-- [ ] **5.3** Create `src/flow-runner/FlowRunner.ts`
+- [x] **5.3** Create `src/flow-runner/FlowRunner.ts`
   - `run(header, steps, ctx: RunContext): Promise<RunResult>` — used by both Jest and API
     1. `DevicePool.acquire(…)`
     2. Spawn Appium if not already running (`AppiumServerManager.spawn`)
