@@ -3,3 +3,16 @@
 /dist
 /build
 /.idea
+
+# Jest e2e outputs — generated per run, never committed
+e2e/screenshots/
+e2e/videos/
+e2e/reports/
+e2e/logs/
+
+# HTTP API run artifacts
+artifacts/
+logs/
+
+# Self-healing selector cache IS committed — do NOT add .cache/ here
+

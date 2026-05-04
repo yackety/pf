@@ -23,6 +23,7 @@ const config: Config = {
             filename: 'report.html',
             openReport: false,
         }],
+        './reporter/StepReporter.ts',
     ],
     forceExit: true,
 };

@@ -321,7 +321,7 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
 
 ## Phase 8 — Observability (local)
 
-- [ ] **8.1** Structured step logging
+- [x] **8.1** Structured step logging
   - `StepExecutor` writes one JSONL line per step to `ctx.logPath` (passed through `RunContext`)
   - Canonical log paths:
     - Jest: `e2e/logs/run-<runId>.jsonl`
@@ -329,11 +329,11 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
   - Fields: `ts`, `udid`, `flow`, `step`, `kind`, `target`, `status`, `durationMs`, `attempt`, `selectorStrategy`
   - Create the log directory automatically if missing; add to `.gitignore`
 
-- [ ] **8.2** Screenshot on failure
+- [x] **8.2** Screenshot on failure
   - Already covered in `StepExecutor` (Phase 5.2) — confirm screenshots save to `ctx.artifactRoot/FAIL_<kind>_<ts>.png`
   - For API runs: `screenshotUrl` in the response points at `/api/flow/artifact/<runId>/screenshots/FAIL_<kind>_<ts>.png`
 
-- [ ] **8.3** Video recording (optional, enable per-flow with `video: true`)
+- [x] **8.3** Video recording (optional, enable per-flow with `video: true`)
   - `SessionManager.startRecording(driver)` → `mobile: startRecordingScreen`
   - `SessionManager.stopRecording(driver, outputPath)` → `mobile: stopRecordingScreen` → decode base64 → write `.mp4`
   - Canonical video paths (derived from `RunContext.artifactRoot`):
@@ -342,7 +342,7 @@ Still no Appium. Registry is just a `Map`. Handlers are registered but not yet c
   - iOS: needs trusted device + Xcode 14+; Android: built into UIAutomator2
   - Add `videoUrl` to `RunResult`
 
-- [ ] **8.4** Add `e2e/reporter/StepReporter.ts` (Jest only)
+- [x] **8.4** Add `e2e/reporter/StepReporter.ts` (Jest only)
   - Implement Jest `Reporter` interface
   - Print a per-step duration table to stdout after each suite
   - Append screenshot paths to failing test messages

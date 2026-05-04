@@ -76,7 +76,7 @@ export const StepExecutor = {
                     selectorStrategy,
                     output,
                 };
-                appendLog(ctx.logPath, header, result);
+                appendLog(ctx.logPath, header, result, step);
                 return result;
             } catch (e: unknown) {
                 lastError = e instanceof Error ? e : new Error(String(e));
@@ -99,7 +99,7 @@ export const StepExecutor = {
             selectorStrategy,
             output,
         };
-        appendLog(ctx.logPath, header, result);
+        appendLog(ctx.logPath, header, result, step);
         return result;
     },
 };
@@ -130,7 +130,12 @@ async function captureFailureScreenshot(
     }
 }
 
-function appendLog(logPath: string, header: FlowHeader, result: StepResult): void {
+function appendLog(
+    logPath: string,
+    header: FlowHeader,
+    result: StepResult,
+    step: FlowStep,
+): void {
     try {
         fs.mkdirSync(path.dirname(logPath), { recursive: true });
         const line = JSON.stringify({
@@ -138,14 +143,51 @@ function appendLog(logPath: string, header: FlowHeader, result: StepResult): voi
             udid: header.udid ?? null,
             flow: header.name ?? null,
             kind: result.kind,
+            target: extractTarget(step),
             status: result.status,
             durationMs: result.durationMs,
             attempt: result.attempt,
             selectorStrategy: result.selectorStrategy ?? null,
+            output: result.output ?? null,
             error: result.error ?? null,
         });
         fs.appendFileSync(logPath, line + '\n', 'utf-8');
     } catch {
         // Log errors are non-fatal — never mask test failures.
+    }
+}
+
+/**
+ * Extract a human-readable "target" string from any step kind for log output.
+ * Returns null for steps that have no meaningful target (e.g. launchApp, wait).
+ */
+function extractTarget(step: FlowStep): string | null {
+    switch (step.kind) {
+        case 'tapOn':
+        case 'longPressOn':
+        case 'doubleTapOn':
+        case 'scrollTo':
+        case 'assertVisible':
+        case 'assertNotVisible':
+        case 'assertChecked':
+        case 'waitForVisible':
+        case 'waitForNotVisible':
+            return typeof step.target === 'string'
+                ? step.target
+                : JSON.stringify(step.target);
+        case 'assertEqual':
+            return `${step.id}=${step.value}`;
+        case 'inputText':
+            return step.text;
+        case 'scroll':
+            return step.direction;
+        case 'screenshot':
+            return step.name;
+        case 'runScript':
+            return step.script;
+        case 'wait':
+            return `${step.ms}ms`;
+        default:
+            return null;
     }
 }
