@@ -1,11 +1,26 @@
 {
+  "jest.jestCommandLine": "node_modules/.bin/jest",
   "jest.virtualFolders": [
     {
       "name": "Unit Tests",
+      "rootPath": ".",
       "jestCommandLine": "node_modules/.bin/jest --config jest.config.ts"
     },
     {
       "name": "E2E Manual Flows",
+      "rootPath": ".",
+      "jestCommandLine": "node_modules/.bin/jest --config e2e/jest.manual.config.ts --runInBand"
+    }
+  ],
+  "jest.projects": [
+    {
+      "name": "Unit Tests",
+      "rootPath": ".",
+      "jestCommandLine": "node_modules/.bin/jest --config jest.config.ts"
+    },
+    {
+      "name": "E2E Manual Flows",
+      "rootPath": ".",
       "jestCommandLine": "node_modules/.bin/jest --config e2e/jest.manual.config.ts --runInBand"
     }
   ],
