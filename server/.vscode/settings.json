@@ -1,0 +1,14 @@
+{
+  "jest.virtualFolders": [
+    {
+      "name": "Unit Tests",
+      "jestCommandLine": "npx jest --config jest.config.ts"
+    },
+    {
+      "name": "E2E Manual Flows",
+      "jestCommandLine": "npx jest --config e2e/jest.manual.config.ts --runInBand"
+    }
+  ],
+  "jest.runMode": "on-demand",
+  "jest.showCoverageOnLoad": false
+}

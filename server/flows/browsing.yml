@@ -1,0 +1,12 @@
+appId: com.example.app
+platform: ios
+name: Browsing Flow
+timeout: 10000
+resetApp: false
+---
+- launchApp
+- waitForVisible: "Home"
+- tapOn: "Browse"
+- waitForVisible: "Categories"
+- scroll: down
+- screenshot: "browsing_categories"

@@ -13,7 +13,8 @@
         "dev:config": "WS_SCRCPY_CONFIG=config.yaml node dist/index.js",
         "flow:test": "jest --config e2e/jest.config.ts",
         "flow:test:band": "jest --config e2e/jest.config.ts --runInBand",
-        "flow:watch": "jest --config e2e/jest.config.ts --watch --runInBand"
+        "flow:watch": "jest --config e2e/jest.config.ts --watch --runInBand",
+        "flow:manual": "jest --config e2e/jest.manual.config.ts --runInBand"
     },
     "author": "Sergey Volkov <drauggres@gmail.com>",
     "license": "MIT",
