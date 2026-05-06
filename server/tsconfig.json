@@ -27,5 +27,10 @@
     "./src/packages/**/*",
     "./src/types/**/*",
     "./src/flow-runner/**/*"
+  ],
+  "exclude": [
+    "./src/**/__tests__/**/*",
+    "./src/**/*.test.ts",
+    "./src/**/*.spec.ts"
   ]
 }
