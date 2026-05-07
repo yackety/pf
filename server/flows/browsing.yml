@@ -1,12 +1,12 @@
-appId: com.example.app
-platform: ios
+appId: com.microsoft.emmx
+platform: android
 name: Browsing Flow
 timeout: 10000
 resetApp: false
 ---
 - launchApp
-- waitForVisible: "Home"
-- tapOn: "Browse"
-- waitForVisible: "Categories"
+- waitForVisible: "Search or ask anything"
+- tapOn: "Search or ask anything"
+- inputText: "vn express"
 - scroll: down
 - screenshot: "browsing_categories"

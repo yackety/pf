@@ -17,7 +17,7 @@ const config: Config = {
     rootDir: '.',
     testMatch: ['**/manual.spec.ts'],
     transform: {
-        '^.+\\.tsx?$': ['ts-jest', { tsconfig: './tsconfig.json' }],
+        '^.+\\.tsx?$': ['ts-jest', { tsconfig: '<rootDir>/e2e/tsconfig.json' }],
     },
     testTimeout: 300_000,
     reporters: [
