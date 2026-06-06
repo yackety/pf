@@ -34,6 +34,10 @@ export const SessionManager = {
                     'appium:automationName': 'UiAutomator2',
                     'appium:noReset': noReset,
                     'appium:appPackage': header.appId,
+                    'appium:autoLaunch': false,
+                    'appium:uiautomator2ServerInstallTimeout': 120_000,
+                    'appium:uiautomator2ServerLaunchTimeout': 120_000,
+                    'appium:androidInstallTimeout': 120_000,
                 }
                 : {
                     platformName: 'iOS',
@@ -50,6 +54,8 @@ export const SessionManager = {
             path: '/',
             capabilities,
             logLevel: 'warn',
+            connectionRetryTimeout: 240_000,
+            connectionRetryCount: 1,
         })) as unknown as AppiumDriver;
 
         // Disable implicit waits — all waits are explicit in handlers.

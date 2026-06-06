@@ -68,8 +68,7 @@ export async function runFlow(options: RunFlowOptions): Promise<RunResult> {
     // ── 3. Spawn Appium (reuses existing process if already running) ────────
     const logDir = path.resolve('e2e/logs');
     fs.mkdirSync(logDir, { recursive: true });
-    const logPath = path.join(logDir, `appium-${udid}.log`);
-    const port = await AppiumServerManager.spawn(udid, logPath);
+    const port = await AppiumServerManager.spawn(udid, logDir);
 
     const device: DeviceRecord = {
         udid,
@@ -80,7 +79,9 @@ export async function runFlow(options: RunFlowOptions): Promise<RunResult> {
     };
 
     // ── 4. Create session ───────────────────────────────────────────────────
+    console.log(`[runFlow] Connecting to Appium on port ${port} for device ${udid}`);
     const driver = await SessionManager.create(header, device);
+    console.log(`[runFlow] Session created — running "${header.name ?? yml}"`);
 
     const startMs = Date.now();
     const results: RunResult['results'] = [];
@@ -94,10 +95,13 @@ export async function runFlow(options: RunFlowOptions): Promise<RunResult> {
         for (const step of steps) {
             const result = await StepExecutor.run(driver, step, header, ctx);
             results.push(result);
+            const icon = result.status === 'pass' ? '✓' : '✗';
+            console.log(`  ${icon} ${result.kind}${result.error ? ` — ${result.error}` : ''}`);
             if (result.status === 'fail') break;
         }
 
         const success = results.every((r) => r.status === 'pass');
+        console.log(`[runFlow] ${success ? 'PASSED' : 'FAILED'} in ${Date.now() - startMs}ms`);
 
         let videoUrl: string | undefined;
         if (header.video) {

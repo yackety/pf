@@ -343,6 +343,17 @@ export class WebsocketProxy extends Mw {
             }
             const delay = Math.max(0, message.at - offsetMs);
             const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+                if (ActionRecorder.isAdbMessage(message)) {
+                    const udid = this.logMeta?.device;
+                    if (!udid) {
+                        console.warn(`[${WebsocketProxy.TAG}] Skipping ADB_SHELL step: no device UDID available`);
+                        return;
+                    }
+                    ActionRecorder.runAdbMessage(message, udid)
+                        .then((output) => console.log(`[${WebsocketProxy.TAG}] ADB_SHELL output: ${output}`))
+                        .catch((error: any) => console.error(`[${WebsocketProxy.TAG}] ADB_SHELL failed: ${error?.message || error}`));
+                    return;
+                }
                 if (!this.remoteSocket || this.remoteSocket.readyState !== this.remoteSocket.OPEN) {
                     return;
                 }

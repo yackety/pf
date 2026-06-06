@@ -34,3 +34,15 @@ adb -s B2NGAA8871301377 shell monkey -p com.android.chrome 1
 
 - pointer_location
 adb -s 988a1b313954434b5930 shell settings put system pointer_location 1
+
+
+adb -s 988a1b313954434b5930 push college-proxy.apk /data/local/tmp/college-proxy.apk
+
+adb -s 988a1b313954434b5930 shell pm install -r /data/local/tmp/college-proxy.apk
+
+adb -s 988a1b313954434b5930 shell locksettings set-pin 1234
+
+
+adb -s 988a1b313954434b5930 push com.facebook.katana_apkmirror.com.apk /data/local/tmp/com.facebook.katana_apkmirror.com.apk
+
+adb -s 988a1b313954434b5930 shell pm install -r /data/local/tmp/com.facebook.katana_apkmirror.com.apk
