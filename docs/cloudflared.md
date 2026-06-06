@@ -1,0 +1,3 @@
+brew install cloudflared && 
+
+sudo cloudflared service install eyJhIjoiMzFjOGM4N2JlNDE0ZTk2MjhmYjc2NmQ0YWQ1Mzg1ZTMiLCJ0IjoiYTFjZDE3YmMtNTYyOS00MjUzLWIyOGQtOGM1NTM4MDc4NTBjIiwicyI6IlpUZzFPVFF3TkRBdFpEVXlZeTAwTnpJeUxUaGtNMlF0WWpNME5XWTBORGhpTTJKaiJ9

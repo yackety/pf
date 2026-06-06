@@ -90,3 +90,15 @@ adb -s ce0717174c594c8b0d7e push base.apk /data/local/tmp/supperproxy
 adb -s ce0717174c594c8b0d7e push split_config.arm64_v8a.apk /data/local/tmp/supperproxy
 adb -s ce0717174c594c8b0d7e push split_config.en.apk /data/local/tmp/supperproxy
 adb -s ce0717174c594c8b0d7e push split_config.xxhdpi.apk /data/local/tmp/supperproxy
+
+
+adb -s 988a1b313954434b5930 push college-proxy.apk /data/local/tmp/college-proxy.apk
+
+adb -s 988a1b313954434b5930 shell pm install -r /data/local/tmp/college-proxy.apk
+
+adb -s 988a1b313954434b5930 shell locksettings set-pin 1234
+
+
+adb -s 988a1b313954434b5930 push com.facebook.katana_apkmirror.com.apk /data/local/tmp/com.facebook.katana_apkmirror.com.apk
+
+adb -s 988a1b313954434b5930 shell pm install -r /data/local/tmp/com.facebook.katana_apkmirror.com.apk
